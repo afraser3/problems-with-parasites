@@ -227,7 +227,7 @@ def gamma_tot(tau, R0, w, lamhat, l2hat, KB=1.24):
 def results_vs_R0(R0, HB, Pr, tau, DB, ks, N, lamhat, l2hat,
                   eq32=False, double_N=False, delta=0.0, ideal=False, sparse=False, CH=1.66,
                   badks_exception=True):
-    # TODO: make this return a dict, maybe? Or make a new class?
+    # TODO: make this return a dict, maybe?
     if eq32:
         wf = w_f_HG19(Pr, tau, R0, HB).root
     elif double_N:
