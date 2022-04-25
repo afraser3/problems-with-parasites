@@ -31,30 +31,11 @@ R0s = np.linspace(1.45, 9.8, num=22, endpoint=True)
 lamhats, l2hats = np.transpose([fingering_modes.gaml2max(Pr, tau, R0) for R0 in R0s])
 lhats = np.sqrt(l2hats)
 
-# The following horrendous code is for going from a list of dicts to a dict of lists
-names = ["FC", "FT", "NuC", "NuT", "gammatot", "wf", "Re", "M2", "kmax"]
-results = {name: np.zeros_like(R0s) for name in names}
+results = parasite_model.results_vs_r0(R0s, HB, Pr, tau, DB, ks, N, lamhats, l2hats, CH=1.66)
 if compare_eq32:
-    names_eq32 = ["FC", "FT", "NuC", "NuT", "gammatot", "wf", "Re", "M2"]
-    results_eq32 = {name: np.zeros_like(R0s) for name in names_eq32}
+    results_eq32 = parasite_model.results_vs_r0(R0s, HB, Pr, tau, DB, ks, N, lamhats, l2hats, eq32=True)
 if compare_hydro:
-    names_hydro = ["FC", "FT", "NuC", "NuT", "gammatot", "wf", "Re", "M2"]
-    results_hydro = {name: np.zeros_like(R0s) for name in names_hydro}
-
-for ri, R0 in enumerate(R0s):
-    print('solving for R0 = ', R0)
-    result_ri = parasite_model.results_vs_R0(R0, HB, Pr, tau, DB, ks, N, lamhats[ri], l2hats[ri], CH=1.66)
-    for name in names:
-        results[name][ri] = result_ri[name]
-    if compare_eq32:
-        result_ri = parasite_model.results_vs_R0(R0, HB, Pr, tau, DB, ks, N, lamhats[ri], l2hats[ri], eq32=True)
-        for name in names_eq32:
-            results_eq32[name][ri] = result_ri[name]
-    if compare_hydro:
-        result_ri = parasite_model.results_vs_R0(R0, 0.0, Pr, tau, DB, ks, N, lamhats[ri], l2hats[ri], eq32=True)
-        for name in names_hydro:
-            results_hydro[name][ri] = result_ri[name]
-# end of horrendous dict-vs-lists code
+    results_hydro = parasite_model.results_vs_r0(R0s, 0.0, Pr, tau, DB, ks, N, lamhats, l2hats, eq32=True)
 
 scale = 0.8
 plt.figure(figsize=(6.4 * scale, 4.8 * scale))

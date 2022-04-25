@@ -224,17 +224,15 @@ def gamma_tot(tau, R0, w, lamhat, l2hat, KB=1.24):
     return R0 * NuT(w, lamhat, l2hat, KB) / (tau * NuC(tau, w, lamhat, l2hat, KB))
 
 
-def results_vs_R0(R0, HB, Pr, tau, DB, ks, N, lamhat, l2hat,
-                  eq32=False, double_N=False, delta=0.0, ideal=False, sparse=False, CH=1.66,
-                  badks_exception=True):
-    # TODO: make this return a dict, maybe?
+def parasite_results(R0, HB, Pr, tau, DB, ks, N, lamhat, l2hat,
+                     eq32=False, double_N=False, delta=0.0, ideal=False, CH=1.66, badks_exception=True):
     if eq32:
         wf = w_f_HG19(Pr, tau, R0, HB).root
     elif double_N:
-        wf, k_max = w_f(Pr, tau, R0, HB, DB, ks, int(2 * N - 1), delta, ideal, sparse, CH=CH,
+        wf, k_max = w_f(Pr, tau, R0, HB, DB, ks, int(2 * N - 1), delta, ideal, CH=CH,
                         lamhat=lamhat, l2hat=l2hat, get_kmax=True)
     else:
-        wf, k_max = w_f(Pr, tau, R0, HB, DB, ks, N, delta, ideal, sparse, CH=CH,
+        wf, k_max = w_f(Pr, tau, R0, HB, DB, ks, N, delta, ideal, CH=CH,
                         lamhat=lamhat, l2hat=l2hat, get_kmax=True)
 
     kb = 1.24
@@ -250,3 +248,24 @@ def results_vs_R0(R0, HB, Pr, tau, DB, ks, N, lamhat, l2hat,
     else:
         names = ["FC", "FT", "NuC", "NuT", "gammatot", "wf", "Re", "M2", "kmax"]
         return dict(zip(names, [fc, ft, nu_c, nu_t, gamma_tot, wf, re, m2, k_max]))
+
+
+def results_vs_r0(r0s, HB, Pr, tau, DB, ks, N, lamhats, l2hats, eq32=False, double_N=False, delta=0.0, ideal=False,
+                  CH=1.66, badks_exception=True):
+    if eq32:
+        names = ["FC", "FT", "NuC", "NuT", "gammatot", "wf", "Re", "M2"]
+    else:
+        names = ["FC", "FT", "NuC", "NuT", "gammatot", "wf", "Re", "M2", "kmax"]
+    results_scan = {name: np.zeros_like(r0s) for name in names}
+    for ri, r0 in enumerate(r0s):
+        if eq32:
+            result_ri = parasite_results(r0, HB, Pr, tau, DB, ks, N, lamhats[ri], l2hats[ri], eq32=True)
+            for name in names:
+                results_scan[name][ri] = result_ri[name]
+        else:
+            print('solving for R0 = ', r0)
+            result_ri = parasite_results(r0, HB, Pr, tau, DB, ks, N, lamhats[ri], l2hats[ri], CH=1.66, eq32=False,
+                                         double_N=double_N, delta=delta, ideal=ideal, badks_exception=badks_exception)
+            for name in names:
+                results_scan[name][ri] = result_ri[name]
+    return results_scan
