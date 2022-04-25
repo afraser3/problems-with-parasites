@@ -144,8 +144,6 @@ def Lmat(delta, M2, Re, Rm, k, N, ideal=False):
     # first fill in the entries that aren't near the edges
     for i, m in enumerate(ms):
         deltan = delns_m[i]
-        # deltanp1 = delns_m[i+2]
-        # deltanm1 = delns_m[i-2]
         if i > 1 and i < len(ms) - 2:  # avoid entries near edges
             deltanp1 = delns_m[i + 2]
             deltanm1 = delns_m[i - 2]
@@ -157,13 +155,6 @@ def Lmat(delta, M2, Re, Rm, k, N, ideal=False):
                 L[i, i + 1] = M2 * k
                 # phi_n, phi_n+1
                 L[i, i + 2] = -k * (1 - deltanp1) / (2.0j * deltan)
-                if not np.isfinite(L[i, i + 2]):
-                    # Pretty sure I can get rid of this now -- I was debugging 0/0 errors, which I think only happen
-                    # if you try to solve the system at k=0, which isn't interesting. And if it is, then the way to
-                    # go about it is to multiply both sides of the linear system by Delta_n, and solve as a
-                    # generalized eigenvalue problem
-                    print(-k * (1 - deltanp1))
-                    print(2.0j * deltan)
                 # phi_n, phi_n-1
                 L[i, i - 2] = k * (1 - deltanm1) / (2.0j * deltan)
             else:  # psi entries
@@ -211,7 +202,6 @@ def omegafromL(L):
 
 
 def gamfromparams(delta, M2, Re, Rm, k, N, ideal, withmode=False):
-    # TODO: fully replace gamfromL with this
     L = Lmat(delta, M2, Re, Rm, k, N, ideal)
     return gamfromL(L, withmode)
 
