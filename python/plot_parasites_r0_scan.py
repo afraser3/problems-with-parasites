@@ -2,21 +2,25 @@ import numpy as np
 from matplotlib import pyplot as plt
 import fingering_modes
 import parasite_model
-import kolmogorov_EVP
-import glob
+import OUTfile_reader
 plt.style.use('style_file.mplstyle')
 
-plot_quantity = "FC"
-log_x = False
-log_y = True
 # choose from ["FC", "FT", "NuC", "NuT", "gammatot", "wf", "Re", "M2"]
+plot_quantity = "FC"
+DNS_name = "flux_Chem"
+log_x = False
+log_y = False
 compare_eq32 = True
 compare_hydro = True
+compare_DNS = True
+compare_hydro_DNS = True
+hydro_DNS_entry = 0  # 0, 1, 2, 3, 4 for FC, FT, NuC, NuT, or wrms
+
 
 N = 17  # need to check this often. 33 is plenty for Pr=0.01, but not for 0.001 w/ HB=10
 Pr = 1e-1
 tau = 1e-1
-HB = 0.01
+HB = 0.1
 delta = 0.0  # from KH analysis -- probably leave at 0
 Pm = 1.0  # magnetic Prandtl number
 DB = Pr / Pm
@@ -28,23 +32,36 @@ ks = np.append(np.append(np.linspace(0.0025, 0.05, num=20, endpoint=False),
 # Set up the array of R0s or rs to solve for
 R0s = np.linspace(1.45, 9.8, num=22, endpoint=True)
 
+if compare_DNS:  # get results of DNS
+    R0s_DNS = np.array([1.45, 3.0, 5.0, 7.0, 9.0])
+    results_DNS = np.zeros_like(R0s_DNS)
+    for ri, r0 in enumerate(R0s_DNS):
+        results_DNS[ri] = OUTfile_reader.get_avg_from_DNS(Pr, r0, HB, Pm, DNS_name)
+if compare_hydro_DNS:
+    R0s_hydro_DNS = np.array([1.5, 3.0, 5.0, 7.0, 9.0])
+    results_hydro_DNS = OUTfile_reader.fluxes_nusselts_wrms_hydr_DNS()[hydro_DNS_entry]
+
+# get results of parasite models
 lamhats, l2hats = np.transpose([fingering_modes.gaml2max(Pr, tau, R0) for R0 in R0s])
 lhats = np.sqrt(l2hats)
-
 results = parasite_model.results_vs_r0(R0s, HB, Pr, tau, DB, ks, N, lamhats, l2hats, CH=1.66)
 if compare_eq32:
     results_eq32 = parasite_model.results_vs_r0(R0s, HB, Pr, tau, DB, ks, N, lamhats, l2hats, eq32=True)
 if compare_hydro:
     results_hydro = parasite_model.results_vs_r0(R0s, 0.0, Pr, tau, DB, ks, N, lamhats, l2hats, eq32=True)
 
+
 scale = 0.8
 plt.figure(figsize=(6.4 * scale, 4.8 * scale))
 # plt.plot(R0s, NuCs_hydro, '-', c='k', label=r'$H_B = 0$ (hydro)')
 plt.plot(R0s, results[plot_quantity], '-', c='C0', label=r'$H_B = {}$'.format(HB))
+plt.plot(R0s_DNS, results_DNS, 'x', c='C0')
 if compare_eq32:
     plt.plot(R0s, results_eq32[plot_quantity], '--', c='C0', label=r'Ideal MHD parasite model')
 if compare_hydro:
     plt.plot(R0s, results_hydro[plot_quantity], '-', c='k', label='hydro')
+if compare_hydro_DNS:
+    plt.plot(R0s_hydro_DNS, results_hydro_DNS, '.', c='k', label='hydro')
 if log_x:
     plt.xscale("log")
 if log_y:
