@@ -237,11 +237,16 @@ def results_vs_R0(R0, HB, Pr, tau, DB, ks, N, lamhat, l2hat,
         wf, k_max = w_f(Pr, tau, R0, HB, DB, ks, N, delta, ideal, sparse, CH=CH,
                         lamhat=lamhat, l2hat=l2hat, get_kmax=True)
 
+    kb = 1.24
+    fc = kb * wf**2.0/(R0*(lamhat + tau * l2hat))
+    ft = kb * wf**2.0/(lamhat + l2hat)
     nu_t = NuT(wf, lamhat, l2hat)
     nu_c = NuC(tau, wf, lamhat, l2hat)
     m2, re = kolmogorov_EVP.KHparams_from_fingering(wf, np.sqrt(l2hat), HB, Pr, DB)[:2]
     gamma_tot = R0 * nu_t / (tau * nu_c)
     if eq32:
-        return [nu_c, nu_t, gamma_tot, wf, re, m2]
+        names = ["FC", "FT", "NuC", "NuT", "gammatot", "wf", "Re", "M2"]
+        return dict(zip(names, [fc, ft, nu_c, nu_t, gamma_tot, wf, re, m2]))
     else:
-        return [nu_c, nu_t, gamma_tot, wf, re, m2, k_max]
+        names = ["FC", "FT", "NuC", "NuT", "gammatot", "wf", "Re", "M2", "kmax"]
+        return dict(zip(names, [fc, ft, nu_c, nu_t, gamma_tot, wf, re, m2, k_max]))

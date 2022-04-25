@@ -6,11 +6,14 @@ import kolmogorov_EVP
 import glob
 plt.style.use('style_file.mplstyle')
 
-
+plot_quantity = "FC"
+log_x = False
+log_y = True
+# choose from ["FC", "FT", "NuC", "NuT", "gammatot", "wf", "Re", "M2"]
 compare_eq32 = True
+compare_hydro = True
+
 N = 17  # need to check this often. 33 is plenty for Pr=0.01, but not for 0.001 w/ HB=10
-
-
 Pr = 1e-1
 tau = 1e-1
 HB = 0.01
@@ -27,44 +30,47 @@ R0s = np.linspace(1.45, 9.8, num=22, endpoint=True)
 
 lamhats, l2hats = np.transpose([fingering_modes.gaml2max(Pr, tau, R0) for R0 in R0s])
 lhats = np.sqrt(l2hats)
-ws_hydro = 2.0 * np.pi * lamhats / lhats
-NuCs_hydro = np.array([parasite_model.NuC(tau, ws_hydro[i], lamhats[i], l2hats[i]) for i in range(len(R0s))])
-# various quantities to solve for and plot
-names = ["NuC", "NuT", "gammatot", "wf", "Re", "M2", "kmax"]
+
+# The following horrendous code is for going from a list of dicts to a dict of lists
+names = ["FC", "FT", "NuC", "NuT", "gammatot", "wf", "Re", "M2", "kmax"]
 results = {name: np.zeros_like(R0s) for name in names}
-results['FC'] = np.zeros_like(R0s)
-results['FT'] = np.zeros_like(R0s)
 if compare_eq32:
-    names_eq32 = ["NuC", "NuT", "gammatot", "wf", "Re", "M2"]
+    names_eq32 = ["FC", "FT", "NuC", "NuT", "gammatot", "wf", "Re", "M2"]
     results_eq32 = {name: np.zeros_like(R0s) for name in names_eq32}
-    results_eq32['FC'] = np.zeros_like(R0s)
-    results_eq32['FT'] = np.zeros_like(R0s)
+if compare_hydro:
+    names_hydro = ["FC", "FT", "NuC", "NuT", "gammatot", "wf", "Re", "M2"]
+    results_hydro = {name: np.zeros_like(R0s) for name in names_hydro}
 
 for ri, R0 in enumerate(R0s):
     print('solving for R0 = ', R0)
     result_ri = parasite_model.results_vs_R0(R0, HB, Pr, tau, DB, ks, N, lamhats[ri], l2hats[ri], CH=1.66)
-    for i, name in enumerate(names):
-        results[name][ri] = result_ri[i]
-    results['FC'][ri] = results['wf'][ri]**2.0/(R0*(lamhats[ri] + tau * l2hats[ri]))
-    results['FT'][ri] = results['wf'][ri]**2.0/(lamhats[ri] + l2hats[ri])
-
-    results['NuC'][ri] = parasite_model.NuC(tau, results['wf'][ri], lamhats[ri], l2hats[ri])
+    for name in names:
+        results[name][ri] = result_ri[name]
     if compare_eq32:
         result_ri = parasite_model.results_vs_R0(R0, HB, Pr, tau, DB, ks, N, lamhats[ri], l2hats[ri], eq32=True)
-        for i, name in enumerate(names_eq32):
-            results_eq32[name][ri] = result_ri[i]
-        results_eq32['FC'][ri] = results_eq32['wf'][ri]**2.0/(R0*(lamhats[ri] + tau * l2hats[ri]))
-        results_eq32['FT'][ri] = results_eq32['wf'][ri]**2.0/(lamhats[ri] + l2hats[ri])
+        for name in names_eq32:
+            results_eq32[name][ri] = result_ri[name]
+    if compare_hydro:
+        result_ri = parasite_model.results_vs_R0(R0, 0.0, Pr, tau, DB, ks, N, lamhats[ri], l2hats[ri], eq32=True)
+        for name in names_hydro:
+            results_hydro[name][ri] = result_ri[name]
+# end of horrendous dict-vs-lists code
 
 scale = 0.8
 plt.figure(figsize=(6.4 * scale, 4.8 * scale))
-plt.semilogy(R0s, NuCs_hydro, '-', c='k', label=r'$H_B = 0$ (hydro)')
-plt.semilogy(R0s, results['NuC'], '-', c='C0', label=r'$H_B = {}$'.format(HB))
+# plt.plot(R0s, NuCs_hydro, '-', c='k', label=r'$H_B = 0$ (hydro)')
+plt.plot(R0s, results[plot_quantity], '-', c='C0', label=r'$H_B = {}$'.format(HB))
 if compare_eq32:
-    plt.semilogy(R0s, results_eq32['NuC'], '--', c='C0', label=r'Ideal MHD parasite model')
+    plt.plot(R0s, results_eq32[plot_quantity], '--', c='C0', label=r'Ideal MHD parasite model')
+if compare_hydro:
+    plt.plot(R0s, results_hydro[plot_quantity], '-', c='k', label='hydro')
+if log_x:
+    plt.xscale("log")
+if log_y:
+    plt.yscale("log")
 plt.xlim((1.0, 1.0/tau))
 plt.xlabel(r'$R_0$')
-plt.ylabel(r'$\mathrm{Nu}_C$')
+plt.ylabel(plot_quantity)
 plt.legend()
 
 plt.tight_layout()
