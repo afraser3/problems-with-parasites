@@ -243,19 +243,19 @@ def parasite_results(R0, HB, Pr, tau, DB, ks, N, lamhat, l2hat,
     m2, re = kolmogorov_EVP.KHparams_from_fingering(wf, np.sqrt(l2hat), HB, Pr, DB)[:2]
     gamma_tot = R0 * nu_t / (tau * nu_c)
     if eq32:
-        names = ["FC", "FT", "NuC", "NuT", "gammatot", "wf", "Re", "M2"]
+        names = ["FC", "FT", "NuC", "NuT", "gammatot", "wf", "Re-star", "HB-star"]
         return dict(zip(names, [fc, ft, nu_c, nu_t, gamma_tot, wf, re, m2]))
     else:
-        names = ["FC", "FT", "NuC", "NuT", "gammatot", "wf", "Re", "M2", "kmax"]
+        names = ["FC", "FT", "NuC", "NuT", "gammatot", "wf", "Re-star", "HB-star", "kmax-star"]
         return dict(zip(names, [fc, ft, nu_c, nu_t, gamma_tot, wf, re, m2, k_max]))
 
 
 def results_vs_r0(r0s, HB, Pr, tau, DB, ks, N, lamhats, l2hats, eq32=False, double_N=False, delta=0.0, ideal=False,
                   CH=1.66, badks_exception=True):
     if eq32:
-        names = ["FC", "FT", "NuC", "NuT", "gammatot", "wf", "Re", "M2"]
+        names = ["FC", "FT", "NuC", "NuT", "gammatot", "wf", "Re-star", "HB-star"]
     else:
-        names = ["FC", "FT", "NuC", "NuT", "gammatot", "wf", "Re", "M2", "kmax"]
+        names = ["FC", "FT", "NuC", "NuT", "gammatot", "wf", "Re-star", "HB-star", "kmax-star"]
     results_scan = {name: np.zeros_like(r0s) for name in names}
     for ri, r0 in enumerate(r0s):
         if eq32:

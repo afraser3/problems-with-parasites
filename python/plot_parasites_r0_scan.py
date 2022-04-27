@@ -5,7 +5,7 @@ import parasite_model
 import OUTfile_reader
 plt.style.use('style_file.mplstyle')
 
-# choose from ["FC", "FT", "NuC", "NuT", "gammatot", "wf", "Re", "M2"]
+# choose from ["FC", "FT", "NuC", "NuT", "gammatot", "wf", "Re-star", "HB-star"]
 plot_quantity = "FC"
 DNS_name = "flux_Chem"
 log_x = False
