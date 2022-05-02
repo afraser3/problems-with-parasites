@@ -31,6 +31,10 @@ HB = 0.1
 Pm = 1.0  # magnetic Prandtl number
 
 params = [[0.1, 0.01, 1.0], [0.1, 0.1, 1.0]]
+labels = [r'$H_B = 0.01$', r'$H_B = 0.1$']
+markers = ['X', 'X']
+colors = ['C0', 'C1']
+ylabel = r'$\mathrm{Nu}_C$'
 
 scale = 0.8
 plt.figure(figsize=(6.4 * scale, 4.8 * scale))
@@ -41,7 +45,7 @@ if compare_hydro:
         results_DNS_hydro = results_DNS_hydro * (R0s_hydro/tau) + 1.0
     if plot_NuT:
         results_DNS_hydro = results_DNS_hydro + 1.0
-    plt.plot(R0s_hydro, results_DNS_hydro, '.', c='k')
+    plt.plot(R0s_hydro, results_DNS_hydro, '.', c='k', label=r'hydro')
 for i, param in enumerate(params):
     pr = param[0]
     hb = param[1]
@@ -52,14 +56,15 @@ for i, param in enumerate(params):
         results_DNS = results_DNS * (R0s/tau) + 1.0
     if plot_NuT:
         results_DNS = results_DNS + 1.0
-    plt.plot(R0s, results_DNS, 'x', c='C{}'.format(i))
+    plt.plot(R0s, results_DNS, markers[i], c=colors[i], label=labels[i])
 if log_x:
     plt.xscale("log")
 if log_y:
     plt.yscale("log")
 plt.xlim((1.0, 1.0/tau))
 plt.xlabel(r'$R_0$')
-#plt.legend()
+plt.ylabel(ylabel)
+plt.legend()
 
 plt.tight_layout()
 plt.show()
