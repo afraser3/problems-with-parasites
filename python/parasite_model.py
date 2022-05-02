@@ -259,12 +259,12 @@ def results_vs_r0(r0s, HB, Pr, tau, DB, ks, N, lamhats, l2hats, eq32=False, doub
     results_scan = {name: np.zeros_like(r0s) for name in names}
     for ri, r0 in enumerate(r0s):
         if eq32:
-            result_ri = parasite_results(r0, HB, Pr, tau, DB, ks, N, lamhats[ri], l2hats[ri], eq32=True)
+            result_ri = parasite_results(r0, HB, Pr, tau, DB, ks, N, lamhats[ri], l2hats[ri], eq32=True, CH=CH)
             for name in names:
                 results_scan[name][ri] = result_ri[name]
         else:
             print('solving for R0 = ', r0)
-            result_ri = parasite_results(r0, HB, Pr, tau, DB, ks, N, lamhats[ri], l2hats[ri], CH=1.66, eq32=False,
+            result_ri = parasite_results(r0, HB, Pr, tau, DB, ks, N, lamhats[ri], l2hats[ri], CH=CH, eq32=False,
                                          double_N=double_N, delta=delta, ideal=ideal, badks_exception=badks_exception)
             for name in names:
                 results_scan[name][ri] = result_ri[name]
