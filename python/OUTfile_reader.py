@@ -53,6 +53,35 @@ def get_vars(file_names, vars, flat=False):
     return vars_out
 
 
+def get_vars_hydro(file_names, vars, flat=False):
+    """
+    Reads OUT files, returns data.
+    """
+    var_names = ["istep", "t", "dt", "urms", "VORTrms", "TEMPrms", "CHEMrms", "flux_Temp", "flux_Chem",
+                 "Temp_min", "Temp_max", "Chem_min", "Chem_max",
+                 "u_min(1)", "u_max(1)", "u_min(2)", "u_max(2)", "u_min(3)", "u_max(3)",
+                 "VORT_min(1)", "VORT_max(1)", "VORT_min(2)", "VORT_max(2)", "VORT_min(3)", "VORT_max(3)",
+                 "u_max_abs", "VORT_max_abs",
+                 "uxrms", "uyrms", "uzrms", "VORTXrms", "VORTYrms", "VORTZrms",
+                 "diss_Temp", "diss_Chem"]
+    var_inds = dict(zip(var_names, range(len(var_names))))
+    # if you do var_inds['t'], you should get back 1
+
+    for fi, fname in enumerate(file_names):
+        if fi == 0:
+            if flat:
+                vars_out = np.loadtxt(fname, usecols=[var_inds[name] for name in vars])
+            else:
+                vars_out = [np.loadtxt(fname, usecols=[var_inds[name] for name in
+                                                       vars])]  # data to return, len(file_names) list of arrays
+        else:
+            if flat:
+                vars_out = np.append(vars_out, np.loadtxt(fname, usecols=[var_inds[name] for name in vars]), axis=0)
+            else:
+                vars_out.append(np.loadtxt(fname, usecols=[var_inds[name] for name in vars]))
+    return vars_out
+
+
 # For my PADDIM runs, the following dict notes for each (R0, HB, Pm) if a particular subdirectory is needed.
 # If no entry in this dict, assume the default directory is fine.
 subdirs = {(1.5, 0.01, 0.1): 'boxsize_100_100_100/',
@@ -106,7 +135,10 @@ avg_starts = {(1.45, 0.01, 1.0): 1000,
 # For my Pr = tau = 0.1 hydro runs, the following notes which entry in the OUT file is sufficiently
 # within the saturated state to safely time-average
 R0s_hydro = np.array([1.5, 3.0, 5.0, 7.0, 9.0])
+R0strings_hydro = ['1.5', '3', '5', '7', '9']
 avg_starts_hydro_DNS = [300, 250, 150, 150, 750]
+avg_starts_hydro_DNS_dict = dict(zip(R0strings_hydro, avg_starts_hydro_DNS))
+
 
 def get_avg_from_DNS(pr, r0, hb, pm, var):
     if int(r0) == r0:
@@ -130,7 +162,27 @@ def get_avg_from_DNS(pr, r0, hb, pm, var):
     return out_avg
 
 
+def get_avg_from_hydr_DNS(r0, var):
+    if int(r0) == r0:
+        r0string = str(int(r0))
+    else:
+        r0string = str(r0)
+    base_dir = '/Users/adfraser/PADDIM/Pr{}_R'.format(0.1) + r0string + '_HB0/'
+    outdir = base_dir
+    last_out = max([int(OUTpath.split('OUT')[-1]) for OUTpath in glob.glob(outdir + 'OUT*')])  # count OUTfiles
+    names = [outdir + 'OUT{}'.format(i) for i in range(1, last_out + 1)]  # create list of OUTfiles
+    vars_in = ['t', var]
+    avg_start = avg_starts_hydro_DNS_dict[r0string]
+    out_full = get_vars_hydro(names, vars_in, flat=True)[avg_start:]
+    out_avg = np.trapz(out_full[:, 1], x=out_full[:, 0])/(out_full[-1, 0] - out_full[0, 0])
+    return out_avg
+
+
 def fluxes_nusselts_wrms_hydr_DNS():
+    """
+    Now that I've added get_vars_hydro and get_avg_from_hydro_DNS, this function is outdated.
+    Keeping it for now because some of my scripts still call it. TODO: fix that
+    """
     tau = 0.1
     FCs = np.zeros_like(R0s_hydro)
     FTs = np.zeros_like(R0s_hydro)
