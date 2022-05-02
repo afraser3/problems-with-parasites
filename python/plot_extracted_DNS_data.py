@@ -13,6 +13,16 @@ compare_hydro = True
 hydro_column = 5
 log_x = False
 log_y = True
+plot_NuT = False  # if true, extract FC and add 1 (see Brown et al ApJ 2013 Eq 12)
+plot_NuC = True  # if true, extract FT, multiply by R0/tau, and add 1 (see Brown et al ApJ 2013 Eq 13)
+if plot_NuT and plot_NuC:
+    raise ValueError
+if plot_NuC:
+    DNS_column = 6
+    hydro_column = 5
+if plot_NuT:
+    DNS_column = 5
+    hydro_column = 4
 
 
 Pr = 1e-1
@@ -27,6 +37,10 @@ plt.figure(figsize=(6.4 * scale, 4.8 * scale))
 if compare_hydro:
     fname_hydro = 'extracted_data/Pr{}_HB{}_R0scan_data.txt'.format(Pr, 0.0)
     R0s_hydro, results_DNS_hydro = np.loadtxt(fname_hydro, usecols=(0, hydro_column)).T
+    if plot_NuC:
+        results_DNS_hydro = results_DNS_hydro * (R0s_hydro/tau) + 1.0
+    if plot_NuT:
+        results_DNS_hydro = results_DNS_hydro + 1.0
     plt.plot(R0s_hydro, results_DNS_hydro, '.', c='k')
 for i, param in enumerate(params):
     pr = param[0]
@@ -34,6 +48,10 @@ for i, param in enumerate(params):
     pm = param[2]
     fname = 'extracted_data/Pr{}_HB{}_Pm{}_R0scan_data.txt'.format(pr, hb, pm)
     R0s, results_DNS = np.loadtxt(fname, usecols=(0, DNS_column)).T
+    if plot_NuC:
+        results_DNS = results_DNS * (R0s/tau) + 1.0
+    if plot_NuT:
+        results_DNS = results_DNS + 1.0
     plt.plot(R0s, results_DNS, 'x', c='C{}'.format(i))
 if log_x:
     plt.xscale("log")
