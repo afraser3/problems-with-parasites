@@ -52,10 +52,6 @@ if compare_DNS:  # get results of DNS
 if compare_hydro_DNS:
     R0s_hydro_DNS = np.array([1.5, 3.0, 5.0, 7.0, 9.0])
     results_hydro_DNS = OUTfile_reader.fluxes_nusselts_wrms_hydr_DNS()[hydro_DNS_entry]
-    # if plot_quantity == "NuC":
-        # results_hydro_DNS = results_hydro_DNS * (R0s_hydro_DNS/tau) + 1.0
-    # if plot_quantity == "NuT":
-        # results_hydro_DNS = results_hydro_DNS + 1.0
 
 lamhats, l2hats = np.transpose([fingering_modes.gaml2max(Pr, tau, R0) for R0 in R0s])
 lhats = np.sqrt(l2hats)
@@ -70,7 +66,6 @@ if compare_hydro:
 
 scale = 0.8
 plt.figure(figsize=(6.4 * scale, 4.8 * scale))
-# plt.plot(R0s, NuCs_hydro, '-', c='k', label=r'$H_B = 0$ (hydro)')
 if compare_modified_HG19:
     plt.plot(R0s, results[plot_quantity], '-', c='C0', label=r'$H_B = {}$'.format(HB))
 if compare_DNS:
