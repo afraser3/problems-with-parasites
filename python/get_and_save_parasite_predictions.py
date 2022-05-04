@@ -8,8 +8,8 @@ import parasite_model
 
 Pr = 1e-1
 tau = Pr
-HB = 0.01
-Pm = 1.0
+HB = 0.1
+Pm = 0.01
 DB = Pr / Pm
 R0s = np.array([1.45, 1.5, 3.0, 5.0, 7.0, 9.0])
 
@@ -40,7 +40,7 @@ for ri, r0 in enumerate(R0s):
     results_array[ri, 0] = r0
 for ni, name in enumerate(names[1:]):
     results_array[:, ni+1] = results_dict[name]
-# saves results to txt file
+# saves result to txt file
 np.savetxt(fname, results_array, header=' '.join(names))
 
 print('done')
