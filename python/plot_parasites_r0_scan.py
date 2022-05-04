@@ -8,18 +8,18 @@ plt.style.use('style_file.mplstyle')
 # choose from ["FC", "FT", "NuC", "NuT", "gammatot", "wf", "Re-star", "HB-star"]
 plot_quantity = "NuC"
 DNS_name = "flux_Chem"
+hydro_DNS_entry = 2  # 0, 1, 2, 3, 4 for FC, FT, NuC, NuT, or wrms
 if plot_quantity == "NuC":
     DNS_name = "flux_Chem"
 if plot_quantity == "NuT":
     DNS_name = "flux_Temp"
 log_x = False
 log_y = True
-compare_modified_HG19 = True
+compare_modified_HG19 = False
 compare_eq32 = True
 compare_hydro = True
 compare_DNS = True
 compare_hydro_DNS = True
-hydro_DNS_entry = 0  # 0, 1, 2, 3, 4 for FC, FT, NuC, NuT, or wrms
 
 
 N = 17  # need to check this often. 33 is plenty for Pr=0.01, but not for 0.001 w/ HB=10
@@ -52,15 +52,15 @@ if compare_DNS:  # get results of DNS
 if compare_hydro_DNS:
     R0s_hydro_DNS = np.array([1.5, 3.0, 5.0, 7.0, 9.0])
     results_hydro_DNS = OUTfile_reader.fluxes_nusselts_wrms_hydr_DNS()[hydro_DNS_entry]
-    if plot_quantity == "NuC":
-        results_hydro_DNS = results_hydro_DNS * (R0s_hydro_DNS/tau) + 1.0
-    if plot_quantity == "NuT":
-        results_hydro_DNS = results_hydro_DNS + 1.0
+    # if plot_quantity == "NuC":
+        # results_hydro_DNS = results_hydro_DNS * (R0s_hydro_DNS/tau) + 1.0
+    # if plot_quantity == "NuT":
+        # results_hydro_DNS = results_hydro_DNS + 1.0
 
+lamhats, l2hats = np.transpose([fingering_modes.gaml2max(Pr, tau, R0) for R0 in R0s])
+lhats = np.sqrt(l2hats)
 if compare_modified_HG19:
     # get results of parasite models
-    lamhats, l2hats = np.transpose([fingering_modes.gaml2max(Pr, tau, R0) for R0 in R0s])
-    lhats = np.sqrt(l2hats)
     results = parasite_model.results_vs_r0(R0s, HB, Pr, tau, DB, ks, N, lamhats, l2hats, CH=1.66)
 if compare_eq32:
     results_eq32 = parasite_model.results_vs_r0(R0s, HB, Pr, tau, DB, ks, N, lamhats, l2hats, eq32=True)
@@ -71,8 +71,10 @@ if compare_hydro:
 scale = 0.8
 plt.figure(figsize=(6.4 * scale, 4.8 * scale))
 # plt.plot(R0s, NuCs_hydro, '-', c='k', label=r'$H_B = 0$ (hydro)')
-plt.plot(R0s, results[plot_quantity], '-', c='C0', label=r'$H_B = {}$'.format(HB))
-plt.plot(R0s_DNS, results_DNS, 'x', c='C0', label='DNS')
+if compare_modified_HG19:
+    plt.plot(R0s, results[plot_quantity], '-', c='C0', label=r'$H_B = {}$'.format(HB))
+if compare_DNS:
+    plt.plot(R0s_DNS, results_DNS, 'x', c='C0', label='DNS')
 if compare_eq32:
     plt.plot(R0s, results_eq32[plot_quantity], '--', c='C0', label=r'HG19 eq 32')
 if compare_hydro:
