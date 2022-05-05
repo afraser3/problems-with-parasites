@@ -6,9 +6,9 @@ import OUTfile_reader
 plt.style.use('style_file.mplstyle')
 
 # choose from ["FC", "FT", "NuC", "NuT", "gammatot", "wf", "Re-star", "HB-star"]
-plot_quantity = "NuC"
-DNS_name = "flux_Chem"
-hydro_DNS_entry = 2  # 0, 1, 2, 3, 4 for FC, FT, NuC, NuT, or wrms
+plot_quantity = "wf"  # "NuC"
+DNS_name = "uzrms"  # "flux_Chem"
+hydro_DNS_entry = 4  # 2  # 0, 1, 2, 3, 4 for FC, FT, NuC, NuT, or wrms
 if plot_quantity == "NuC":
     DNS_name = "flux_Chem"
 if plot_quantity == "NuT":
@@ -25,7 +25,7 @@ compare_hydro_DNS = True
 N = 17  # need to check this often. 33 is plenty for Pr=0.01, but not for 0.001 w/ HB=10
 Pr = 1e-1
 tau = 1e-1
-HB = 0.1
+HB = 0.01
 delta = 0.0  # from KH analysis -- probably leave at 0
 Pm = 1.0  # magnetic Prandtl number
 DB = Pr / Pm
@@ -87,3 +87,4 @@ plt.legend()
 
 plt.tight_layout()
 plt.show()
+# plt.savefig('figures/HG19_vs_DNS_Pm1.pdf')
