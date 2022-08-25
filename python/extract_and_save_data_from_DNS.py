@@ -19,19 +19,28 @@ else:
              "uxrms", "uyrms", "uzrms", "diss_Temp", "diss_Chem"]
 
 data_array = np.zeros((len(R0s), len(names)), dtype=np.float64)
+variance_array = np.zeros_like(data_array)
 for ri, r0 in enumerate(R0s):
     data_array[ri, 0] = r0
+    variance_array[ri, 0] = r0
     for ni, name in enumerate(names[1:]):
         if HB > 0:
-            data_array[ri, ni+1] = OUTfile_reader.get_avg_from_DNS(Pr, r0, HB, Pm, name)
+            out = OUTfile_reader.get_avg_from_DNS(Pr, r0, HB, Pm, name, True)
+            data_array[ri, ni + 1] = out[0]
+            variance_array[ri, ni + 1] = out[1]
         else:
-            data_array[ri, ni + 1] = OUTfile_reader.get_avg_from_hydr_DNS(r0, name)
+            out = OUTfile_reader.get_avg_from_hydr_DNS(r0, name, True)
+            data_array[ri, ni + 1] = out[0]
+            variance_array[ri, ni + 1] = out[1]
 
 if HB > 0:
     fname = 'extracted_data/Pr{}_HB{}_Pm{}_R0scan_data.txt'.format(Pr, HB, Pm)
+    variance_fname = 'extracted_data/Pr{}_HB{}_Pm{}_R0scan_data_variance.txt'.format(Pr, HB, Pm)
 else:
     fname = 'extracted_data/Pr{}_HB{}_R0scan_data.txt'.format(Pr, HB)
+    variance_fname = 'extracted_data/Pr{}_HB{}_R0scan_data_variance.txt'.format(Pr, HB)
 
 np.savetxt(fname, data_array, header=' '.join(names))
+np.savetxt(variance_fname, variance_array, header=' '.join(names))
 
 print('done')

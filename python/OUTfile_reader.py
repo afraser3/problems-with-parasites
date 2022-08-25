@@ -140,7 +140,7 @@ avg_starts_hydro_DNS = [300, 250, 150, 150, 750]
 avg_starts_hydro_DNS_dict = dict(zip(R0strings_hydro, avg_starts_hydro_DNS))
 
 
-def get_avg_from_DNS(pr, r0, hb, pm, var):
+def get_avg_from_DNS(pr, r0, hb, pm, var, with_variance=False):
     if int(r0) == r0:
         r0string = str(int(r0))
     else:
@@ -158,11 +158,16 @@ def get_avg_from_DNS(pr, r0, hb, pm, var):
     else:
         avg_start = avg_starts[(pr, r0, hb, pm)]
     out_full = get_vars(names, vars_in, flat=True)[avg_start:]
-    out_avg = np.trapz(out_full[:, 1], x=out_full[:, 0])/(out_full[-1, 0] - out_full[0, 0])
-    return out_avg
+    if with_variance:
+        out_avg = np.mean(out_full[:, 1])
+        out_variance = np.var(out_full[:, 1])
+        return out_avg, out_variance
+    else:
+        out_avg = np.trapz(out_full[:, 1], x=out_full[:, 0])/(out_full[-1, 0] - out_full[0, 0])  # a more accurate mean
+        return out_avg
 
 
-def get_avg_from_hydr_DNS(r0, var):
+def get_avg_from_hydr_DNS(r0, var, with_variance=False):
     if int(r0) == r0:
         r0string = str(int(r0))
     else:
@@ -174,8 +179,13 @@ def get_avg_from_hydr_DNS(r0, var):
     vars_in = ['t', var]
     avg_start = avg_starts_hydro_DNS_dict[r0string]
     out_full = get_vars_hydro(names, vars_in, flat=True)[avg_start:]
-    out_avg = np.trapz(out_full[:, 1], x=out_full[:, 0])/(out_full[-1, 0] - out_full[0, 0])
-    return out_avg
+    if with_variance:
+        out_avg = np.mean(out_full[:, 1])
+        out_variance = np.var(out_full[:, 1])
+        return out_avg, out_variance
+    else:
+        out_avg = np.trapz(out_full[:, 1], x=out_full[:, 0])/(out_full[-1, 0] - out_full[0, 0])
+        return out_avg
 
 
 def fluxes_nusselts_wrms_hydr_DNS():
