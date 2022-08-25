@@ -160,7 +160,7 @@ def get_avg_from_DNS(pr, r0, hb, pm, var, with_variance=False):
     out_full = get_vars(names, vars_in, flat=True)[avg_start:]
     if with_variance:
         out_avg = np.mean(out_full[:, 1])
-        out_variance = np.var(out_full[:, 1])
+        out_variance = np.sqrt(np.var(out_full[:, 1]))
         return out_avg, out_variance
     else:
         out_avg = np.trapz(out_full[:, 1], x=out_full[:, 0])/(out_full[-1, 0] - out_full[0, 0])  # a more accurate mean
@@ -181,7 +181,7 @@ def get_avg_from_hydr_DNS(r0, var, with_variance=False):
     out_full = get_vars_hydro(names, vars_in, flat=True)[avg_start:]
     if with_variance:
         out_avg = np.mean(out_full[:, 1])
-        out_variance = np.var(out_full[:, 1])
+        out_variance = np.sqrt(np.var(out_full[:, 1]))
         return out_avg, out_variance
     else:
         out_avg = np.trapz(out_full[:, 1], x=out_full[:, 0])/(out_full[-1, 0] - out_full[0, 0])
