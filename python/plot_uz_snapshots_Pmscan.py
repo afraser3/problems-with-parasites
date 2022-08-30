@@ -35,7 +35,7 @@ with h5py.File(fname, 'r') as f:
             umax = max(umax, max(uz.max(), -uz.min()))
 
 # uz1_max = max([uz1_max, -uz1_min])  # this was relevant for sharing one colorbar
-scale = 1.2
+scale = 1.0
 # fig = plt.figure(figsize=(scale*4, scale*8), constrained_layout=True)
 fig, axs = plt.subplots(nrows=2, ncols=2, figsize=(scale*5, scale*7), constrained_layout=True, dpi=300)
 for axi, ax in enumerate(axs.flat):
@@ -58,5 +58,10 @@ for axi, ax in enumerate(axs.flat):
     else:
         ax.set_title(r'Hydro')
 
+sublabels = [r'$\mathrm{(a)}$', r'$\mathrm{(b)}$', r'$\mathrm{(c)}$', r'$\mathrm{(d)}$']
+for axi, ax in enumerate(axs.flat):
+    ax.text(-0.2, 1.07, sublabels[axi], horizontalalignment='center', verticalalignment='center',
+                transform=ax.transAxes)
+
 # plt.show()
-plt.savefig('figures/uz_snapshots_Pmscan-R07-2.pdf')
+plt.savefig('figures/uz_snapshots_Pmscan-R07_fixed-cbar.pdf')
