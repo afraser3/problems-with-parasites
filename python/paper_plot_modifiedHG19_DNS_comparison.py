@@ -10,13 +10,13 @@ import OUTfile_reader
 plt.style.use('style_file.mplstyle')
 
 # choose from ["FC", "FT", "NuC", "NuT", "gammatot", "wf", "Re-star", "HB-star"]
-plot_quantity = "NuC"
-DNS_name = "flux_Chem"
+# plot_quantity = "NuC"
+# DNS_name = "flux_Chem"
 # hydro_DNS_entry = 2  # 0, 1, 2, 3, 4 for FC, FT, NuC, NuT, or wrms
-if plot_quantity == "NuC":
-    DNS_name = "flux_Chem"
-if plot_quantity == "NuT":
-    DNS_name = "flux_Temp"
+# if plot_quantity == "NuC":
+    # DNS_name = "flux_Chem"
+# if plot_quantity == "NuT":
+    # DNS_name = "flux_Temp"
 log_x = False
 log_y = True
 compare_modified_HG19 = True
@@ -33,6 +33,7 @@ HBs = [0.01, 0.1]
 delta = 0.0  # from KH analysis -- probably leave at 0
 Pms = np.array([0.1, 1.0])  # magnetic Prandtl number
 DBs = Pr / Pms
+ch = 1.66
 
 ks = np.append(np.append(np.linspace(0.0025, 0.05, num=20, endpoint=False),
                          np.linspace(0.05, 0.275, num=50, endpoint=False)),
@@ -40,7 +41,7 @@ ks = np.append(np.append(np.linspace(0.0025, 0.05, num=20, endpoint=False),
 
 # Set up the array of R0s or rs to solve for
 # R0s = np.linspace(1.45, 9.5, num=50, endpoint=True)
-R0s = np.linspace(1.45, 9.9, num=50, endpoint=True)
+R0s = np.linspace(1.45, 9.9, num=25, endpoint=True)
 
 if compare_DNS:  # get results of DNS
     R0s_DNS = np.array([[1.5, 3.0, 5.0, 7.0, 9.0], [1.45, 3.0, 5.0, 7.0, 9.0]])  # Pm = 0.1 and Pm = 1
@@ -61,7 +62,7 @@ lamhats, l2hats = np.transpose([fingering_modes.gaml2max(Pr, tau, R0) for R0 in 
 lhats = np.sqrt(l2hats)
 if compare_modified_HG19:
     # get results of parasite models
-    results = [[parasite_model.results_vs_r0(R0s, hb, Pr, tau, db, ks, N, lamhats, l2hats, CH=1.66) for hb in HBs] for db in DBs]
+    results = [[parasite_model.results_vs_r0(R0s, hb, Pr, tau, db, ks, N, lamhats, l2hats, CH=ch) for hb in HBs] for db in DBs]
 if compare_eq32:
     results_eq32 = [parasite_model.results_vs_r0(R0s, hb, Pr, tau, 1.0, ks, N, lamhats, l2hats, eq32=True) for hb in HBs]
 if compare_hydro:
@@ -118,6 +119,6 @@ plt.xlabel(r'$R_0$')
 plt.ylabel(r'$\mathrm{Nu}_C$')
 # plt.legend()
 
-plt.tight_layout()
-# plt.show()
-plt.savefig('figures/modifiedHG19_vs_DNS-2panel.pdf')
+#plt.tight_layout()
+#plt.show()
+plt.savefig('figures/modifiedHG19_vs_DNS-2panel-ch1.pdf')
