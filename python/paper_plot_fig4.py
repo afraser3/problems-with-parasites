@@ -97,15 +97,16 @@ for pmi, pm in enumerate(Pms):
     if compare_DNS:
         plt.errorbar(R0s_DNS[pmi], FCs_DNS[pmi], fmt='X', yerr=FCs_DNS_var[pmi], c=colors[pmi, 1], label=r'$\mathrm{{Pm}} = {}$'.format(pm))
 if compare_eq32:
-    plt.plot(R0s, results_eq32["FC"], '--', c='C{}'.format(1))  # , label=r'HG19, $H_B = {}$'.format(hb))
+    plt.plot(R0s, results_eq32["FC"], '--', c='grey', label='HG19 model')  # , label=r'HG19, $H_B = {}$'.format(hb))
+plt.errorbar(R0s_hydro_DNS, FCs_hydro_DNS, fmt='.', yerr=FCs_hydro_DNS_var, c='k')
 if log_x:
     plt.xscale("log")
 if log_y:
     plt.yscale("log")
 plt.xlim((1.0, 1.0/tau))
 plt.xlabel(r'$R_0$')
-plt.ylabel(r'$F_C$')
-plt.legend()
+plt.ylabel(r'$\hat{F}_C$')
+plt.legend(ncol=2, columnspacing=0.25)
 
 plt.subplot(1, 2, 2)
 for pmi, pm in enumerate(Pms):
@@ -132,4 +133,5 @@ plt.ylabel(r'$\mathrm{Pm} \hat{u}_{z, \mathrm{rms}}/(\mathrm{Pr} \hat{l}_f)$')
 
 plt.tight_layout()
 # plt.show()
-plt.savefig('figures/HG19_vs_DNS_FC_Rm_Pmscan.pdf')
+# plt.savefig('figures/HG19_vs_DNS_FC_Rm_Pmscan.pdf')
+plt.savefig('figures/Fig4.pdf')
