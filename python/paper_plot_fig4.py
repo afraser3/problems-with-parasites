@@ -128,7 +128,8 @@ if log_y:
     plt.yscale("log")
 plt.xlim((1.0, 1.0/tau))
 plt.xlabel(r'$R_0$')
-plt.ylabel(r'$\mathrm{Pm} \hat{u}_{z, \mathrm{rms}}/(\mathrm{Pr} \hat{l}_f)$')
+# plt.ylabel(r'$\mathrm{Pm} \hat{u}_{z, \mathrm{rms}}/(\mathrm{Pr} \hat{l}_f)$')
+plt.ylabel(r'$\mathrm{Rm}^*$')
 # plt.legend()
 
 plt.tight_layout()
