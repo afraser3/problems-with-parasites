@@ -91,10 +91,11 @@ if log_y:
     plt.yscale("log")
 plt.xlim((1.0, 1.0/tau))
 plt.xlabel(r'$R_0$')
-plt.ylabel(r'$\hat{F}_C$')
+plt.ylabel(r'$|\hat{F}_C|$')
 plt.legend()
 
 # plt.tight_layout()
 # plt.show()
-plt.savefig('figures/HG19_vs_DNS_Pm1.pdf')
+# plt.savefig('figures/HG19_vs_DNS_Pm1.pdf')
+plt.savefig('figures/Fig1.pdf')
 # plt.savefig('figures/HG19_vs_DNS_Pm1.pdf', bbox_inches='tight')

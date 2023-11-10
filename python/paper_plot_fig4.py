@@ -81,14 +81,14 @@ for pmi, pm in enumerate(Pms):
         lamhat, l2hat = fingering_modes.gaml2max(Pr, tau, r0)
         lhats_DNS[pmi, ri] = np.sqrt(l2hat)
 
-colors = np.array([['midnightblue', 'saddlebrown'], ['darkblue', 'peru'], ['C0', 'C1']])
+colors = np.array([['midnightblue', 'saddlebrown'], ['darkblue', 'firebrick'], ['C0', 'C1']])
 scale = 0.8
 plt.figure(figsize=(12.8 * scale, 4.8 * scale))#, constrained_layout=True)
 
 plt.subplot(1, 2, 1)
 if compare_hydro:
     # plt.plot(R0s, results_hydro["FC"], '--', c='grey', label='Parasite model')
-    plt.plot(R0s, results_hydro["FC"], '--', c='k', label='Brown model')
+    plt.plot(R0s, results_hydro["FC"], '--', c='k', label='Brown et al.~2013')
 if compare_hydro_DNS:
     plt.errorbar(R0s_hydro_DNS, FCs_hydro_DNS, fmt='.', yerr=FCs_hydro_DNS_var, c='k', label=r'Hydro')
 for pmi, pm in enumerate(Pms):
@@ -97,7 +97,7 @@ for pmi, pm in enumerate(Pms):
     if compare_DNS:
         plt.errorbar(R0s_DNS[pmi], FCs_DNS[pmi], fmt='X', yerr=FCs_DNS_var[pmi], c=colors[pmi, 1], label=r'$\mathrm{{Pm}} = {}$'.format(pm))
 if compare_eq32:
-    plt.plot(R0s, results_eq32["FC"], '--', c='grey', label='HG19 model')  # , label=r'HG19, $H_B = {}$'.format(hb))
+    plt.plot(R0s, results_eq32["FC"], '--', c='grey', label='HG19')  # , label=r'HG19, $H_B = {}$'.format(hb))
 plt.errorbar(R0s_hydro_DNS, FCs_hydro_DNS, fmt='.', yerr=FCs_hydro_DNS_var, c='k')
 if log_x:
     plt.xscale("log")
@@ -105,8 +105,8 @@ if log_y:
     plt.yscale("log")
 plt.xlim((1.0, 1.0/tau))
 plt.xlabel(r'$R_0$')
-plt.ylabel(r'$\hat{F}_C$')
-plt.legend(ncol=2, columnspacing=0.25)
+plt.ylabel(r'$|\hat{F}_C|$')
+plt.legend(ncol=2, columnspacing=0.25, fontsize='small')
 
 plt.subplot(1, 2, 2)
 for pmi, pm in enumerate(Pms):
@@ -114,10 +114,10 @@ for pmi, pm in enumerate(Pms):
         #plt.plot(R0s, results[pmi]["wf"]**2.0, '-', c=colors[pmi, 1], label=r'$H_B = {}, \mathrm{{Pm}} = {}$'.format(HB, pm))
     if compare_DNS:
         plt.errorbar(R0s_DNS[pmi], pm*wfs_DNS[pmi]/(Pr*lhats_DNS[pmi]), fmt='X', yerr=pm*wfs_DNS_var[pmi]/(Pr*lhats_DNS[pmi]), c=colors[pmi, 1])
-if compare_eq32:
-    for pmi, pm in enumerate(Pms):
-        # plt.plot(R0s, pm*results_eq32["wf"]/(Pr*lhats), '--', c=colors[pmi, 1])  # , label=r'HG19, $H_B = {}$'.format(hb))
-        plt.plot(R0s, pm * results_hydro["wf"] / (Pr * lhats), '--', c=colors[pmi, 1])
+# if compare_eq32:
+#     for pmi, pm in enumerate(Pms):
+#         # plt.plot(R0s, pm*results_eq32["wf"]/(Pr*lhats), '--', c=colors[pmi, 1])  # , label=r'HG19, $H_B = {}$'.format(hb))
+#         plt.plot(R0s, pm * results_hydro["wf"] / (Pr * lhats), '--', c=colors[pmi, 1])
 #if compare_hydro:
     #plt.plot(R0s, results_hydro["wf"]**2.0, '--', c='k', label='Hydro')
 #if compare_hydro_DNS:
@@ -129,7 +129,8 @@ if log_y:
 plt.xlim((1.0, 1.0/tau))
 plt.xlabel(r'$R_0$')
 # plt.ylabel(r'$\mathrm{Pm} \hat{u}_{z, \mathrm{rms}}/(\mathrm{Pr} \hat{l}_f)$')
-plt.ylabel(r'$\mathrm{Rm}^*$')
+plt.ylabel(r'$\mathrm{Rm}$')
+plt.axhline(1.0, c='k')
 # plt.legend()
 
 plt.tight_layout()
