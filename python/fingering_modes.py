@@ -30,8 +30,6 @@ gaml2max(pr, tau, r0)
     of [eq1, eq2] and returns them -- i.e., returns the most-unstable
     growth rate of the fingering instability and the corresponding
     wavenumber squared
-
-Beyond gaml2max there's some junk I wrote as an aside that isn't important
 """
 import numpy as np
 from scipy import optimize as opt
