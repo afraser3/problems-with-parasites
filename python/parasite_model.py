@@ -12,6 +12,15 @@ w_f(Pr, tau, R0, HB, DB, ks, N, delta=0.0, ideal=False, badks_exception=True, CH
     finger velocity w_f such that the parasitic KH mode's growth rate
     is equal to CH * lambda_f, where lambda_f is the most-unstable
     finger mode's growth rate
+w_f_HG19(Pr, tau, R0, HB, CH=1.66)
+    Solves for w_f via the HG19 model using their approximate analytical expression for sigma_KH vs w (their eq 30)
+    This is done by relying on scipy.optimize.root_scalar, where I'm giving it HG19's eq 32 (my function HG19_eq32),
+    the derivative of that equation with respect to w (my function dEQ32dw), and an initial guess, so that it uses
+    the Newton solve by default.
+HG19_eq32
+    Used by the Newton solve in w_f_HG19, see w_f_HG19
+dEQ32dw
+    Used by the Newton solve in w_f_HG19, see w_f_HG19
 NuC(tau, w, lamhat, l2hat, KB=1.24)
     Evaluates the parameterization for Nu_C in terms of w given in
     Harrington & Garaud and references therein
@@ -200,14 +209,16 @@ def w_f_HG19(Pr, tau, R0, HB, CH=1.66):
 
     lamhat, l2hat = fingering_modes.gaml2max(Pr, tau, R0)
     lhat = np.sqrt(l2hat)
-    # the following is a terrible initial guess
-    # w0 = np.sqrt(2.0*HB)
+    # Initial guess: take the max between the strong-field limit and the hydro limit
     w0 = max(np.sqrt(2.0*HB), 2.0 * np.pi * lamhat/lhat)
     result = opt.root_scalar(HG19_eq32, args=(Pr, tau, R0, HB, CH), x0=w0, fprime=dEQ32dw)
-    root = result.root
+    root = result.root  # this is wf
     if root > 0:
         return result
+    # In early versions of this, sometimes I'd end up with negative predicted wf values. So I did the below
+    # as a fallback. But at some point along the way, this issue vanished.
     else:
+        print('w_f_HG19 initial search returned negative w, resorting to brute force bracket search')
         w1 = 10.0 * CH**1.5 * (np.sqrt(2.0*HB) + 2.0 * np.pi * lamhat/lhat)
         try:
             result = opt.root_scalar(HG19_eq32, args=(Pr, tau, R0, HB, CH),
