@@ -77,20 +77,27 @@ def w_f(Pr, tau, R0, HB, DB, ks, N, delta=0.0, ideal=False, badks_exception=True
     if lamhat == 0.0 or l2hat == 0.0:
         lamhat, l2hat = fingering_modes.gaml2max(Pr, tau, R0)
     lhat = np.sqrt(l2hat)
-    # For lower bound on w_f, take half the hydro expression lambda_f/(CB*l_f). For the upper bound,
-    # take the strongly-magnetized limit and multiply by 4
+
+    # Next, set up initial guesses of wf to perform bracketed search in the intervial w1 < wf < w2.
+    # This part is tough and I never got it right, that's why you see a couple commented-out guesses and my final guess
+    # wasn't perfect, hence the need to do some guess-and-check before handing things off to scipy.
+
+    # For lower bound on w_f, take the hydro expression lambda_f/(CB*l_f) (see the bit of text between Fig 3 and eq 27
+    # of HG19). For the upper bound, take the strongly-magnetized limit and multiply by 4
     # wbounds = [np.pi*lamhat/lhat, 4.0*np.sqrt(2.0*HB)]
     # that upper bound is too low when R0 gets small. I'm guessing lambda gets to be too large for the w^2 ~ 2HB
     # scaling to be appropriate. Could also be because dissipation is included -> increases wf above HG19 guess
-    # wbounds = [np.pi*lamhat/lhat, 40.0*np.sqrt(2.0*HB)]
     w1 = 2.0 * np.pi * lamhat / lhat  # HB = 0 solution
     w2 = np.sqrt(2.0 * HB)  # HB -> infinity solution
-    # TODO: would it be better to set the left bound to be close to max, too?
-    wbounds = [w1, w1 + w2]  # the answer never lies below w1, but sometimes it's below w2
+    wbounds = [w1, w1 + w2]  # the answer never lies below w1, but sometimes it's above w2
     args = (lamhat, lhat, HB, Pr, DB, delta, ks, N, ideal, badks_exception, CH)
-    count = 0
+    count = 0  # Used for troubleshooting/monitoring just how bad the original wbounds are
     while True:
-        count += 1
+        count += 1  # Every time we fail to get the wbounds right, increment count to see how many retries were needed
+        # in standard use-case, the right-most bound on wf is the one that fails, so the following block just assumes
+        # we need to iteratively improve w2. The ValueError exception below is for handling what happens when
+        # w1 (the left-most bound on wf) is a bad guess, and that only ever happens when tinkering with
+        # certain model parameters that don't need to be tinkered with.
         try:
             rbound_eval = kolmogorov_EVP.gammax_minus_lambda(wbounds[1], lamhat, lhat, HB, Pr, DB, delta, ks, N,
                                                              ideal, badks_exception, CH)
