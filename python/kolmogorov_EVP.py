@@ -186,6 +186,92 @@ def Lmat(delta, M2, Re, Rm, k, N, ideal=False):
     return L
 
 
+def Lmat_withTC(HB, DB, Pr, R0, tau, A_phi, A_T, A_C, k0, kz, delta, N, ideal=False, zero_T_C_diss=False):
+    diss = 1.0 - ideal  # =0 for ideal=True, =1 for ideal=False
+    diss_TC = 1.0 - zero_T_C_diss
+    M = int(4*N)  # size of matrix
+    L = np.zeros((M, M), dtype=np.complex128)
+    ns = list(range(-int((N - 1) / 2), int((N + 1) / 2), 1))  # e.g. [-4, -3, -2, ..., 4] for N=9
+    ns_long, field_iter = np.meshgrid(ns, range(4))
+    ns_long = ns_long.T.flatten()  # [-4, -4, -4, -4, -3, -3, -3, -3, ...] so four copies of ns
+    field_iter = field_iter.T.flatten()  # [0,1,2,3,0,1,2,3,...] useful for looping over the 4 physical fields
+    delns_m = Deln(kz, ns_long, delta, True, k0)  # \Delta_n from my notes, but four copies just like ns_long
+
+    for i, n in enumerate(ns_long):
+        delta_n = delns_m[i]  # \Delta_n
+        if n != ns[0] and n != ns[-1]:  # avoid filling in the edges of the matrix for now
+            delta_nm1 = delns_m[i-4]  # \Delta_{n-1}
+            delta_np1 = delns_m[i+4]  # \Delta_{n+1}
+            if field_iter[i] == 0:  # phi entries
+                L[i, i] = 1.0j * Pr * delta_n * diss  # phi_n, phi_n part
+                L[i, i + 1] = HB * kz  # phi_n, psi_n
+                L[i, i + 2] = Pr * (n + delta) * k0 / delta_n  # phi_n, T_n
+                L[i, i + 3] = -Pr * (n + delta) * k0 / delta_n  # phi_n, C_n
+                L[i, i + 4] = -A_phi * kz * k0 * (k0**2.0 - delta_np1) / (2.0j * delta_n)  # phi_n, phi_{n+1}
+                L[i, i - 4] = A_phi * kz * k0 * (k0**2.0 - delta_nm1) / (2.0j * delta_n)  # phi_n, phi_{n-1}
+            if field_iter[i] == 1:  # psi entries
+                L[i, i] = 1.0j * DB * delta_n * diss  # psi_n, psi_n part
+                L[i, i - 1] = kz  # psi_n, phi_n
+                L[i, i + 4] = A_phi * kz * k0 / 2.0j  # psi_n, psi_{n+1}
+                L[i, i - 4] = -L[i, i + 4]  # psi_n, psi_{n-1}
+            if field_iter[i] == 2:  # T entries
+                L[i, i] = 1.0j * delta_n * diss_TC  # T_n, T_n part
+                L[i, i - 2] = (n + delta) * k0  # T_n, phi_n
+                L[i, i + 4] = A_phi * kz * k0 / 2.0j  # T_n, T_{n+1}
+                L[i, i - 4] = -L[i, i + 4]  # T_n, T_{n-1}
+                L[i, i + 2] = -A_T * kz * k0 / 2.0  # T_n, phi_{n+1}
+                L[i, i - 6] = L[i, i + 2]  # T_n, phi_{n-1}
+            if field_iter[i] == 3:  # C entries
+                L[i, i] = 1.0j * tau * delta_n * diss_TC  # C_n, C_n part
+                L[i, i - 3] = (n + delta) * k0 / R0  # C_n, phi_n
+                L[i, i + 4] = A_phi * kz * k0 / 2.0j  # C_n, C_{n+1}
+                L[i, i - 4] = -L[i, i + 4]  # C_n, C_{n-1}
+                L[i, i + 1] = -A_C * kz * k0 / 2.0  # C_n, phi_{n+1}
+                L[i, i - 7] = L[i, i + 1]  # C_n, phi_{n-1}
+    # Now fill in the edges
+    # First, most negative phi part
+    L[0, 0] = 1.0j * Pr * delns_m[0] * diss  # phi_-N, phi_-N
+    L[0, 1] = HB * kz  # phi_-N, psi_-N
+    L[0, 2] = Pr * (ns[0] + delta) * k0 / delns_m[0]  # phi_-N, T_-N
+    L[0, 3] = -Pr * (ns[0] + delta) * k0 / delns_m[0]  # phi_-N, C_-N
+    L[0, 4] = -A_phi * kz * k0 * (k0**2.0 - delns_m[4]) / (2.0j * delns_m[0])  # phi_-N, phi_{-N + 1}
+    # Most positive phi part
+    L[-4, -4] = 1.0j * Pr * delns_m[-4] * diss  # phi_N, phi_N
+    L[-4, -3] = HB * kz  # phi_N, psi_N
+    L[-4, -2] = Pr * (ns[-1] + delta) * k0 / delns_m[-4]  # phi_N, T_N
+    L[-4, -1] = -Pr * (ns[-1] + delta) * k0 / delns_m[-4]  # phi_N, C_N
+    L[-4, -8] = A_phi * kz * k0 * (k0**2.0 - delns_m[-8]) / (2.0j * delns_m[-4])  # phi_N, phi_{N-1}
+    # Most negative psi part
+    L[1, 0] = kz  # psi_-N, phi_-N
+    L[1, 1] = 1.0j * DB * delns_m[1] * diss  # psi_-N, psi_-N
+    L[1, 5] = A_phi * kz * k0 / 2.0j  # psi_-N, psi_{-N + 1}
+    # Most positive psi part
+    L[-3, -4] = kz  # psi_N, phi_N
+    L[-3, -3] = 1.0j * DB * delns_m[-3] * diss  # psi_N, psi_N
+    L[-3, -7] = -A_phi * kz * k0 / 2.0j  # psi_N, psi_{N-1}
+    # Most negative T part
+    L[2, 0] = (ns[0] + delta) * k0  # T_-N, phi_-N
+    L[2, 2] = 1.0j * delns_m[2] * diss_TC  # T_-N, T_-N
+    L[2, 4] = -A_T * kz * k0 / 2.0  # T_-N, phi_{-N + 1}
+    L[2, 6] = A_phi * kz * k0 / 2.0j  # T_-N, T_{-N + 1}
+    # Most positive T part
+    L[-2, -4] = (ns[-1] + delta) * k0  # T_N, phi_N
+    L[-2, -2] = 1.0j * delns_m[-2] * diss_TC  # T_N, T_N
+    L[-2, -8] = -A_T * kz * k0 / 2.0  # T_N, phi_{N - 1}
+    L[-2, -6] = -A_phi * kz * k0 / 2.0j  # T_N, T_{N - 1}
+    # Most negative C part
+    L[3, 0] = (ns[0] + delta) * k0 / R0  # C_-N, phi_-N
+    L[3, 3] = 1.0j * delns_m[3] * tau * diss_TC  # C_-N, C_-N
+    L[3, 4] = -A_C * kz * k0 / 2.0  # C_-N, phi_{-N + 1}
+    L[3, 7] = A_phi * kz * k0 / 2.0j  # C_-N, C_{-N + 1}
+    # Most positive C part
+    L[-1, -4] = (ns[-1] + delta) * k0 / R0  # C_N, phi_N
+    L[-1, -1] = 1.0j * delns_m[-1] * tau * diss_TC  # C_N, C_N
+    L[-1, -8] = -A_T * kz * k0 / 2.0  # C_N, phi_{N - 1}
+    L[-1, -5] = -A_phi * kz * k0 / 2.0j  # C_N, C_{N - 1}
+    return L
+
+
 def gamfromL(L, withmode=False):
     w, v = np.linalg.eig(L)
     if withmode:
