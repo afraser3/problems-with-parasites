@@ -5,7 +5,6 @@ import kolmogorov_EVP
 import parasite_model
 import fingering_modes
 
-# Pr = tau = DB = 0.1
 Pr = 1e-6
 tau = 1e-7
 # Pm = Pr / DB
@@ -15,12 +14,14 @@ DB = Pr / Pm
 ### R0 = 1 + r*(tau_inv - 1)
 r = 0.9
 R0 = 1 + r*(-1 + 1.0/tau)
-# R0 = 1.5
+
+# Three different resolutions to compare
 N1 = 5
 N2 = 9
 N3 = 17
 # HB = 1.0
 HB = 1e-7
+# screwing around with different ks to scan over
 # ks = np.append(np.geomspace(1e-10, 0.025, num=40, endpoint=False), np.append(np.append(np.linspace(0.0025, 0.05, num=20, endpoint=False),
 #                          np.linspace(0.05, 0.275, num=50, endpoint=False)),
 #                np.linspace(0.275, 1.0, num=100)))
@@ -30,6 +31,7 @@ ks = np.append(np.geomspace(1e-10, 0.0025, num=20, endpoint=False), np.append(np
 lamhat, l2hat = fingering_modes.gaml2max(Pr, tau, R0)
 lhat = np.sqrt(l2hat)
 
+# seems the wf predicted by the Brown and HG19 models are good brackets over which to search
 w_Brown = parasite_model.w_f_HG19(Pr, tau, R0, 0.0).root
 w_HG19 = parasite_model.w_f_HG19(Pr, tau, R0, HB).root
 wfs = np.linspace(w_Brown, w_HG19, num=20)
@@ -92,9 +94,7 @@ with PdfPages('KH_growth_scan_Pr{:0.2e}_tau{:0.2e}_HB{:0.2e}_Pm{:0.2e}_R0{:0.2e}
         plt.axhline(lamhat/0.33, c='red')
         plt.axhline(0, c='k')
         plt.xlabel(r'$k_z$')
-        # plt.ylabel(r'$\sigma_{KH}$')
         plt.ylim(ymin=0)
 
         pdf.savefig()
         plt.close()
-        print(wi)
