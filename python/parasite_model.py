@@ -150,6 +150,95 @@ def w_f(Pr, tau, R0, HB, DB, ks, N, delta=0.0, ideal=False, badks_exception=True
         return sol.root
 
 
+def w_f_withTC(Pr, tau, R0, HB, DB, ks, N, badks_exception=True, get_kmax=False, C2=0.33, lamhat=0.0,
+        l2hat=0.0, Sam=False):
+    """
+    Same as w_f above (see that docstring) but using the extended "with T&C" model of Fraser, Reifenstein, Garaud 2023
+
+    Parameters
+    ----------
+    Pr : Thermal Prandtl number
+    tau : Compositional diffusion coefficient / thermal diffusion coefficient
+    R0 : Density ratio
+    HB : Lorentz force coefficient in PADDIM units (see Harrington&Garaud 2019)
+    DB : Magnetic diffusion coefficient in PADDIM units
+    ks : Range of wavenumbers to calculate KH modes at, note these are not exactly the \hat{k_z} in our paper, but
+         rather that number divided by lhat
+    N : Spectral resolution of Floquet analysis for KH modes
+    badks_exception : Throw error if fastest-growing mode is on either end of ks array?
+    get_kmax : Return kmax along with w_f? This may be useful for estimating finger height
+    C2 : Model constant
+    lamhat : Growth rate of fastest-growing elevator mode; recalculates if not provided
+    l2hat : Squared wavenumber of fastest-growing elevator mode; recalculates if not provided
+
+    Returns
+    -------
+
+    """
+
+    if lamhat == 0.0 or l2hat == 0.0:
+        lamhat, l2hat = fingering_modes.gaml2max(Pr, tau, R0)
+    lhat = np.sqrt(l2hat)
+
+    # Next, set up initial guesses of wf to perform bracketed search in the intervial w1 < wf < w2.
+    # This part is tough and I never got it right, that's why you see a couple commented-out guesses and my final guess
+    # wasn't perfect, hence the need to do some guess-and-check before handing things off to scipy.
+
+    # For lower bound on w_f, take the hydro expression lambda_f/(CB*l_f) (see the bit of text between Fig 3 and eq 27
+    # of HG19). For the upper bound, take the strongly-magnetized limit and multiply by 4
+    # wbounds = [np.pi*lamhat/lhat, 4.0*np.sqrt(2.0*HB)]
+    # that upper bound is too low when R0 gets small. I'm guessing lambda gets to be too large for the w^2 ~ 2HB
+    # scaling to be appropriate. Could also be because dissipation is included -> increases wf above HG19 guess
+    w1 = 2.0 * np.pi * lamhat / lhat  # HB = 0 solution
+    w2 = np.sqrt(2.0 * HB)  # HB -> infinity solution
+    wbounds = [w1, w1 + w2]  # the answer never lies below w1, but sometimes it's above w2
+    args = (lamhat, 0, HB, DB, Pr, tau, R0, ks, N, badks_exception, C2, Sam)
+    count = 0  # Used for troubleshooting/monitoring just how bad the original wbounds are
+    while True:
+        count += 1  # Every time we fail to get the wbounds right, increment count to see how many retries were needed
+        # in standard use-case, the right-most bound on wf is the one that fails, so the following block just assumes
+        # we need to iteratively improve w2. The ValueError exception below is for handling what happens when
+        # w1 (the left-most bound on wf) is a bad guess, and that only ever happens when tinkering with
+        # certain model parameters that don't need to be tinkered with.
+        try:
+            rbound_eval = kolmogorov_EVP.gammax_minus_lambda_withTC(wbounds[1], lamhat, 0, HB, DB, Pr, tau, R0, ks, N,
+                                                                    badks_exception, C2, Sam)
+            while rbound_eval < 0:
+                print('adjusting bounds preemptively, count=', count)
+                count += 1
+                wbounds = [wbounds[1], 2.0 * wbounds[1]]
+                rbound_eval = kolmogorov_EVP.gammax_minus_lambda_withTC(wbounds[1], lamhat, 0, HB, DB, Pr, tau, R0, ks,
+                                                                        N, badks_exception, C2, Sam)
+            if count > 1:
+                print('i shall proceed')
+            sol = opt.root_scalar(kolmogorov_EVP.gammax_minus_lambda_withTC, args=args, bracket=wbounds)
+            # return sol.root
+            break
+        except ValueError:
+            # Now that I've added the preceding rbound_eval business, the following is mostly obsolete
+            lbound_eval = kolmogorov_EVP.gammax_minus_lambda_withTC(wbounds[0], lamhat, 0, HB, DB, Pr, tau, R0, ks, N,
+                                                                    badks_exception, C2, Sam)
+            rbound_eval = kolmogorov_EVP.gammax_minus_lambda_withTC(wbounds[1], lamhat, 0, HB, DB, Pr, tau, R0, ks, N,
+                                                                    badks_exception, C2, Sam)
+            if lbound_eval * rbound_eval > 0:  # want to end up with rbound_eval > 0
+                wbounds = [0.25 * wbounds[0], wbounds[1]]
+                print("adjusting wbounds, count=", count)
+                if count > 8:
+                    print(wbounds)
+                    raise
+            else:
+                raise
+    if get_kmax:
+        # M2, Re, Rm = kolmogorov_EVP.KHparams_from_fingering(sol.root, lhat, HB, Pr, DB)
+        # TODO: this is redundant: I'm solving for kmax by re-calculating gammax
+        # delta, w, HB, DB, Pr, tau, R0, ks, N, badks_except=False, get_kmax=False
+        gammax, kmax = kolmogorov_EVP.gammax_kscan_withTC(0, sol.root, HB, DB, Pr, tau, R0, ks, N, badks_except=False,
+                                                   get_kmax=get_kmax, Sam=Sam)
+        return [sol.root, kmax]
+    else:
+        return sol.root
+
+
 def HG19_eq32(w, Pr, tau, R0, HB, CH=1.66):
     """
     Simply evaluates Eq. (32) in Harrington & Garaud 2019.
@@ -231,6 +320,8 @@ def w_f_HG19(Pr, tau, R0, HB, CH=1.66):
 
 
 def NuC(tau, w, lamhat, l2hat, KB=1.24):
+    # Note KB in HG19 is C_1 in FRG23, and 1.24 is the value advocated by HG19 (and BGS13) but 0.62 by FRG23
+    # when using the with_TC model
     return 1 + KB * w ** 2.0 / (tau * (lamhat + tau * l2hat))
 
 
