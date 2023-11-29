@@ -512,7 +512,8 @@ def gamfromparams(delta, M2, Re, Rm, k, N, ideal, withmode=False):
     return gamfromL(L, withmode)
 
 
-def sigma_from_fingering_params(delta, w, HB, DB, Pr, tau, R0, k_star, N, withmode=False, withTC=False, Sam=False):
+def sigma_from_fingering_params(delta, w, HB, DB, Pr, tau, R0, k_star, N, withmode=False, withTC=False, Sam=False,
+                                get_frequency=False):
     """
     Returns fastest growing mode's growth rate for Kolmogorov flow problem, set up so that you can input parameters
     in PADDIM units (except for k_star) rather than normalized to the sinusoidal flow
@@ -532,6 +533,8 @@ def sigma_from_fingering_params(delta, w, HB, DB, Pr, tau, R0, k_star, N, withmo
     withTC : Boolean flag for whether or not to include T and C (if false, uses the model in sec 5.1 of FRG23, if true,
              uses the model in sec 5.2)
     Sam : Boolean, whether or not to use Sam's code for contructing the matrix (which works!) vs mine (doesn't work!)
+    get_frequency : Boolean, whether to return full complex eigenvalue or just the growth rate; currently only
+                    implemented for with_TC=True and Sam=True
 
     Returns
     -------
@@ -550,10 +553,14 @@ def sigma_from_fingering_params(delta, w, HB, DB, Pr, tau, R0, k_star, N, withmo
             L = Sams_Lmat(N_Sam, 0, lhat, kz, A_psi, A_T, A_C, 0, Pr, tau, R0, Pr/DB, HB)
             w, v = np.linalg.eig(L)
             ind = np.argmax(np.real(w))
-            if withmode:
-                return [np.real(w[ind]), v[:, ind]]
+            if get_frequency:
+                evalue = w[ind]
             else:
-                return np.real(w[ind])
+                evalue = np.real(w[ind])
+            if withmode:
+                return [evalue, v[:, ind]]
+            else:
+                return evalue
         else:
             A_phi = w / lhat
             A_T = lhat * A_phi / (lamhat + l2hat)
@@ -648,10 +655,10 @@ def gammax_minus_lambda(w, lamhat, lhat, HB, Pr, DB, delta, ks, N, ideal=False, 
     return out
 
 
-def gamma_over_k_withTC(delta, w, HB, DB, Pr, tau, R0, ks, N, Sam=False):
+def gamma_over_k_withTC(delta, w, HB, DB, Pr, tau, R0, ks, N, Sam=False, get_frequencies=False):
     # note these ks are really k_stars not k_hats
     # As in, k_star = k_hat / lhat (where k_hat is \hat{k_z} in the paper)
-    return [sigma_from_fingering_params(delta, w, HB, DB, Pr, tau, R0, k, N, withTC=True, Sam=Sam) for k in ks]
+    return [sigma_from_fingering_params(delta, w, HB, DB, Pr, tau, R0, k, N, withTC=True, Sam=Sam, get_frequency=get_frequencies) for k in ks]
 
 
 def gammax_kscan_withTC(delta, w, HB, DB, Pr, tau, R0, ks, N, badks_except=False, get_kmax=False, Sam=False):
