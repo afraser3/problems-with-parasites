@@ -16,18 +16,19 @@ r = 0.9
 R0 = 1 + r*(-1 + 1.0/tau)
 
 # Three different resolutions to compare
-N1 = 5
-N2 = 9
-N3 = 17
+N1 = 7  # 5
+N2 = 8  # 9
+N3 = 9  # 17
 # HB = 1.0
-HB = 1e-7
+HB = 1e-5
 # screwing around with different ks to scan over
 # ks = np.append(np.geomspace(1e-10, 0.025, num=40, endpoint=False), np.append(np.append(np.linspace(0.0025, 0.05, num=20, endpoint=False),
 #                          np.linspace(0.05, 0.275, num=50, endpoint=False)),
 #                np.linspace(0.275, 1.0, num=100)))
-ks = np.append(np.geomspace(1e-10, 0.0025, num=20, endpoint=False), np.append(np.append(np.linspace(0.0025, 0.05, num=10, endpoint=False),
-                         np.linspace(0.05, 0.275, num=25, endpoint=False)),
-               np.linspace(0.275, 2.0, num=50)))
+# ks = np.append(np.geomspace(1e-10, 0.0025, num=20, endpoint=False), np.append(np.append(np.linspace(0.0025, 0.05, num=10, endpoint=False),
+#                          np.linspace(0.05, 0.275, num=25, endpoint=False)),
+#                np.linspace(0.275, 2.0, num=50)))
+ks = np.geomspace(1e-6, 1.0, num=50)
 lamhat, l2hat = fingering_modes.gaml2max(Pr, tau, R0)
 lhat = np.sqrt(l2hat)
 
@@ -36,11 +37,17 @@ w_Brown = parasite_model.w_f_HG19(Pr, tau, R0, 0.0).root
 w_HG19 = parasite_model.w_f_HG19(Pr, tau, R0, HB).root
 wfs = np.linspace(w_Brown, w_HG19, num=20)
 
-with PdfPages('KH_growth_scan_Pr{:0.2e}_tau{:0.2e}_HB{:0.2e}_Pm{:0.2e}_R0{:0.2e}.pdf'.format(Pr, tau, HB, Pm, R0)) as pdf:
+with PdfPages('KH_growth_scan_Pr{:0.2e}_tau{:0.2e}_HB{:0.2e}_Pm{:0.2e}_R0{:0.2e}_test2.pdf'.format(Pr, tau, HB, Pm, R0)) as pdf:
     for wi, wf in enumerate(wfs):
-        gammas1 = kolmogorov_EVP.gamma_over_k_withTC(0.0, wf, HB, DB, Pr, tau, R0, ks, N1, Sam=True)
-        gammas2 = kolmogorov_EVP.gamma_over_k_withTC(0.0, wf, HB, DB, Pr, tau, R0, ks, N2, Sam=True)
-        gammas3 = kolmogorov_EVP.gamma_over_k_withTC(0.0, wf, HB, DB, Pr, tau, R0, ks, N3, Sam=True)
+        lambdas1 = kolmogorov_EVP.gamma_over_k_withTC(0.0, wf, HB, DB, Pr, tau, R0, ks, N1, Sam=True, get_frequencies=True)
+        lambdas2 = kolmogorov_EVP.gamma_over_k_withTC(0.0, wf, HB, DB, Pr, tau, R0, ks, N2, Sam=True, get_frequencies=True)
+        lambdas3 = kolmogorov_EVP.gamma_over_k_withTC(0.0, wf, HB, DB, Pr, tau, R0, ks, N3, Sam=True, get_frequencies=True)
+        gammas1 = np.real(lambdas1)
+        gammas2 = np.real(lambdas2)
+        gammas3 = np.real(lambdas3)
+        omegas1 = np.abs(np.imag(lambdas1))
+        omegas2 = np.abs(np.imag(lambdas2))
+        omegas3 = np.abs(np.imag(lambdas3))
         # The following commented-out stuff was to test Rich's idea of using the Gershgorin circle theorem to bound the
         # parasite growth rates. Leaving it in for now in case we want to revisit it.
         # N_Sam1 = int((N1 - 1) / 2)
@@ -70,7 +77,7 @@ with PdfPages('KH_growth_scan_Pr{:0.2e}_tau{:0.2e}_HB{:0.2e}_Pm{:0.2e}_R0{:0.2e}
         #     for i in range(len(Lmat3[0])):
         #         disk_extents[i] = np.real(Lmat3[i, i]) + np.sum(np.abs(Lmat3[i, :])) - np.abs(Lmat3[i, i])
         #     bounds3[kzi] = np.max(disk_extents)
-        plt.subplot(1, 2, 1)
+        plt.subplot(2, 3, 1)
         plt.plot(ks, gammas1)
         plt.plot(ks, gammas2, '--')
         plt.plot(ks, gammas3, ':')
@@ -78,13 +85,12 @@ with PdfPages('KH_growth_scan_Pr{:0.2e}_tau{:0.2e}_HB{:0.2e}_Pm{:0.2e}_R0{:0.2e}
         # plt.plot(ks, bounds2, '--', c='C1')
         # plt.plot(ks, bounds3, ':', c='C2')
         plt.axhline(lamhat/0.33, c='red')
-        plt.axhline(0, c='k')
-        plt.xlabel(r'$k_z$')
+        # plt.xlabel(r'$k_z$')
         plt.ylabel(r'$\sigma_{KH}$')
         plt.xlim(xmin=0)
         plt.ylim(ymin=0)
 
-        plt.subplot(1, 2, 2)
+        plt.subplot(2, 3, 2)
         plt.semilogx(ks, gammas1)
         plt.semilogx(ks, gammas2, '--')
         plt.semilogx(ks, gammas3, ':')
@@ -92,9 +98,43 @@ with PdfPages('KH_growth_scan_Pr{:0.2e}_tau{:0.2e}_HB{:0.2e}_Pm{:0.2e}_R0{:0.2e}
         # plt.plot(ks, bounds2, '--', c='C1')
         # plt.plot(ks, bounds3, ':', c='C2')
         plt.axhline(lamhat/0.33, c='red')
-        plt.axhline(0, c='k')
-        plt.xlabel(r'$k_z$')
+        # plt.xlabel(r'$k_z$')
         plt.ylim(ymin=0)
+
+        plt.subplot(2, 3, 3)
+        plt.loglog(ks, gammas1)
+        plt.loglog(ks, gammas2, '--')
+        plt.loglog(ks, gammas3, ':')
+        # plt.plot(ks, bounds1, '-', c='C0')
+        # plt.plot(ks, bounds2, '--', c='C1')
+        # plt.plot(ks, bounds3, ':', c='C2')
+        plt.axhline(lamhat/0.33, c='red')
+        # plt.xlabel(r'$k_z$')
+
+        plt.subplot(2, 3, 4)
+        plt.plot(ks, omegas1)
+        plt.plot(ks, omegas2, '--')
+        plt.plot(ks, omegas3, ':')
+        plt.axhline(lamhat/0.33, c='red')
+        # plt.xlabel(r'$k_z$')
+        plt.ylabel(r'$\sigma_{KH}$')
+        plt.xlim(xmin=0)
+        # plt.ylim(ymin=0)
+
+        plt.subplot(2, 3, 5)
+        plt.semilogx(ks, omegas1)
+        plt.semilogx(ks, omegas2, '--')
+        plt.semilogx(ks, omegas3, ':')
+        plt.axhline(lamhat/0.33, c='red')
+        plt.xlabel(r'$k_z$')
+        # plt.ylim(ymin=0)
+
+        plt.subplot(2, 3, 6)
+        plt.loglog(ks, omegas1)
+        plt.loglog(ks, omegas2, '--')
+        plt.loglog(ks, omegas3, ':')
+        plt.axhline(lamhat/0.33, c='red')
+        plt.xlabel(r'$k_z$')
 
         pdf.savefig()
         plt.close()
