@@ -333,20 +333,29 @@ def gamma_tot(tau, R0, w, lamhat, l2hat, KB=1.24):
     return R0 * NuT(w, lamhat, l2hat, KB) / (tau * NuC(tau, w, lamhat, l2hat, KB))
 
 
+# def parasite_results(R0, HB, Pr, tau, DB, ks, N, lamhat, l2hat,
+#                      eq32=False, double_N=False, delta=0.0, ideal=False, CH=1.66, badks_exception=True,
+#                      withTC=False, Sam=False, C1=1.24, C2=0.33):
 def parasite_results(R0, HB, Pr, tau, DB, ks, N, lamhat, l2hat,
-                     eq32=False, double_N=False, delta=0.0, ideal=False, CH=1.66, badks_exception=True):
-    if eq32:
-        wf = w_f_HG19(Pr, tau, R0, HB).root
-    elif double_N:
-        wf, k_max = w_f(Pr, tau, R0, HB, DB, ks, int(2 * N - 1), delta, ideal, CH=CH,
-                        lamhat=lamhat, l2hat=l2hat, get_kmax=True)
+                     eq32=False, double_N=False, delta=0.0, ideal=False, badks_exception=True,
+                     withTC=False, Sam=False, C1=1.24, C2=1/1.66):
+    # NOTE C2 and CH mean basically the same thing, one is just the inverse of the other. Pre-FRG23, CH=1.66 was fiducial. Now C2=0.33 is.
+    CH = 1/C2
+    if withTC:
+        wf, k_max = w_f_withTC(Pr, tau, R0, HB, DB, ks, N, badks_exception=badks_exception, get_kmax=True, C2=C2, lamhat=lamhat, l2hat=l2hat, Sam=Sam)
     else:
-        wf, k_max = w_f(Pr, tau, R0, HB, DB, ks, N, delta, ideal, CH=CH,
-                        lamhat=lamhat, l2hat=l2hat, get_kmax=True)
-
-    kb = 1.24
-    fc = kb * wf**2.0/(R0*(lamhat + tau * l2hat))
-    ft = kb * wf**2.0/(lamhat + l2hat)
+        if eq32:
+            wf = w_f_HG19(Pr, tau, R0, HB).root
+        elif double_N:
+            wf, k_max = w_f(Pr, tau, R0, HB, DB, ks, int(2 * N - 1), delta, ideal, CH=CH,
+                            lamhat=lamhat, l2hat=l2hat, get_kmax=True)
+        else:
+            wf, k_max = w_f(Pr, tau, R0, HB, DB, ks, N, delta, ideal, CH=CH,
+                            lamhat=lamhat, l2hat=l2hat, get_kmax=True)
+    # NOTE kb and C1 are the same thing. 1.24 is the pre-FRG23 value, 0.62 is the new one
+    # kb = 1.24
+    fc = C1 * wf**2.0/(R0*(lamhat + tau * l2hat))
+    ft = C1 * wf**2.0/(lamhat + l2hat)
     nu_t = NuT(wf, lamhat, l2hat)
     nu_c = NuC(tau, wf, lamhat, l2hat)
     m2, re = kolmogorov_EVP.KHparams_from_fingering(wf, np.sqrt(l2hat), HB, Pr, DB)[:2]
@@ -359,8 +368,10 @@ def parasite_results(R0, HB, Pr, tau, DB, ks, N, lamhat, l2hat,
         return dict(zip(names, [fc, ft, nu_c, nu_t, gamma_tot, wf, re, m2, k_max]))
 
 
+# def results_vs_r0(r0s, HB, Pr, tau, DB, ks, N, lamhats, l2hats, eq32=False, double_N=False, delta=0.0, ideal=False,
+#                   CH=1.66, badks_exception=True, withTC=False, Sam=False, C1=1.24, C2=0.33):
 def results_vs_r0(r0s, HB, Pr, tau, DB, ks, N, lamhats, l2hats, eq32=False, double_N=False, delta=0.0, ideal=False,
-                  CH=1.66, badks_exception=True):
+                  badks_exception=True, withTC=False, Sam=False, C1=1.24, C2=1/1.66):
     if eq32:
         names = ["FC", "FT", "NuC", "NuT", "gammatot", "wf", "Re-star", "HB-star"]
     else:
@@ -368,13 +379,14 @@ def results_vs_r0(r0s, HB, Pr, tau, DB, ks, N, lamhats, l2hats, eq32=False, doub
     results_scan = {name: np.zeros_like(r0s) for name in names}
     for ri, r0 in enumerate(r0s):
         if eq32:
-            result_ri = parasite_results(r0, HB, Pr, tau, DB, ks, N, lamhats[ri], l2hats[ri], eq32=True, CH=CH)
+            # result_ri = parasite_results(r0, HB, Pr, tau, DB, ks, N, lamhats[ri], l2hats[ri], eq32=True, CH=CH, C1=C1)
+            result_ri = parasite_results(r0, HB, Pr, tau, DB, ks, N, lamhats[ri], l2hats[ri], eq32=True, C2=C2, C1=C1)
             for name in names:
                 results_scan[name][ri] = result_ri[name]
         else:
             print('solving for R0 = ', r0)
-            result_ri = parasite_results(r0, HB, Pr, tau, DB, ks, N, lamhats[ri], l2hats[ri], CH=CH, eq32=False,
-                                         double_N=double_N, delta=delta, ideal=ideal, badks_exception=badks_exception)
+            result_ri = parasite_results(r0, HB, Pr, tau, DB, ks, N, lamhats[ri], l2hats[ri], eq32=False,
+                                         double_N=double_N, delta=delta, ideal=ideal, badks_exception=badks_exception, withTC=withTC, Sam=Sam, C1=C1, C2=C2)
             for name in names:
                 results_scan[name][ri] = result_ri[name]
     return results_scan

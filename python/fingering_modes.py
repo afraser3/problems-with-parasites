@@ -128,7 +128,7 @@ def gaml2max(pr, tau, r0):
         sol = opt.root(fun, [lamguess(pr, tau, r0), np.sqrt(k2guess(pr, tau, r0))], args=(pr, tau, r0, True), jac=jac,
                        method='hybr')
         test = fun(sol.x, pr, tau, r0, True)
-        if np.allclose(test, np.zeros_like(test)) == False:
+        if np.allclose(test, np.zeros_like(test)) is False:
             raise ValueError("fingering_modes.gaml2max is broken!")
         x = sol.x
         x[1] = x[1] ** 2.0  # whatever calls gaml2max expects k^2, not k

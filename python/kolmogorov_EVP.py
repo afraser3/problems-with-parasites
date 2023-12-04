@@ -64,7 +64,7 @@ gammax_minus_lambda(w, lamhat, lhat, HB, Pr, DB, delta, ks, N,
 # TODO: rename KH growth rate from gamma to sigma for consistency w/ HG18
 import numpy as np
 import fingering_modes
-import scipy
+# import scipy
 
 
 class KrangeError(Exception):
@@ -126,11 +126,11 @@ def Lmat(delta, M2, Re, Rm, k, N, ideal=False):
         Matrix whose eigenvalues are complex frequencies of KH modes
     """
     diss = 1.0 - ideal  # =0 for ideal=True, =1 for ideal=False
-    ns = list(range(-int((N - 1) / 2), int((N + 1) / 2), 1))  # the n over which we sum the Fourier series
+    # ns = list(range(-int((N - 1) / 2), int((N + 1) / 2), 1))  # the n over which we sum the Fourier series
     ms = list(range(-N + 1, N + 1, 1))  # this is going to be twice as long so we can loop over each n twice, once for phi and once for psi
 
     # the following few lines just sets up arrays of Delta_n
-    delns = [Deln(k, n, delta) for n in ns]
+    # delns = [Deln(k, n, delta) for n in ns]
     delns_m = np.zeros_like(ms, dtype=np.float64)
     for i, m in enumerate(ms):
         if m % 2 == 0:
@@ -148,7 +148,7 @@ def Lmat(delta, M2, Re, Rm, k, N, ideal=False):
             deltanp1 = delns_m[i + 2]
             deltanm1 = delns_m[i - 2]
             if m % 2 == 0:  # phi entries
-                n = m / 2
+                # n = m / 2
                 # phi_n, phi_n part
                 L[i, i] = (1.0j) * (diss / Re) * deltan
                 # phi_n, psi_n part
@@ -681,8 +681,6 @@ def gammax_minus_lambda_withTC(w, lamhat, delta, HB, DB, Pr, tau, R0, ks, N, bad
     # so that I can use root-finding packages to search for zeros of this
     # function
     # Note that C2 refers to the C_2 in Fraser, Reifenstein, Garaud 2023 (e.g. eq 28)
-
-    krange = np.copy(ks)
 
     # The following while/try/except is for repeating the k scan if the max
     # occurs at the edges of the range of k sampled
