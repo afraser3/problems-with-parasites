@@ -667,7 +667,13 @@ def gammax_kscan_withTC(delta, w, HB, DB, Pr, tau, R0, ks, N, badks_except=False
     gammax = gammas[ind]
     if badks_except and gammax > 0.0:  # ASSUMING USER DOESN'T CARE ABOUT GAMMA_MAX IF IT'S NEGATIVE
         if gammax == gammas[0]:
-            raise KrangeError  # ('the k-range needs to be extended downwards')
+            lamhat, l2hat = fingering_modes.gaml2max(Pr, tau, R0)
+            if np.isclose(lamhat, gammax) or gammax < lamhat:
+                # Sometimes, the parasite growth rate vs k is a curve that peaks at k=0 (where the mode is simply an elevator mode with no modification from the background shear) 
+                # and then decreases from there. In that case, gammax == gammas[0] will be true no matter how low your ks array goes, and this whole check is unhelpful.
+                print('Warning: the peak growth rate is occurring at the lowest k (but probably just be due to the fact that elevator modes are the fastest-growing DDC modes).')
+            else:
+                raise KrangeError  # ('the k-range needs to be extended downwards')
         if gammax == gammas[-1]:
             raise ValueError('the k-range needs to be extended upwards (or check your resolution)')
     if get_kmax:
