@@ -95,7 +95,7 @@ def jac(x, pr, tau, r0, passk1=False):
     db2dk2 = 1.0 + pr + tau  # derivative of b2 wrt k2
     b1 = k2 ** 2.0 * (tau * pr + pr + tau) + pr * (1.0 - 1.0 / r0)
     db1dk2 = 2.0 * k2 * (tau * pr + pr + tau)
-    b0 = k2 ** 3.0 * tau * pr + k2 * pr * (tau - 1.0 / r0)
+    # b0 = k2 ** 3.0 * tau * pr + k2 * pr * (tau - 1.0 / r0)
     db0dk2 = 3.0 * k2 ** 2.0 * tau * pr + pr * (tau - 1.0 / r0)
 
     j11 = 3.0 * lam ** 2.0 + 2.0 * b2 * lam + b1  # d(eq1)/dlam
@@ -106,7 +106,7 @@ def jac(x, pr, tau, r0, passk1=False):
     c2 = 1.0 + pr + tau
     c1 = 2.0 * k2 * (tau * pr + tau + pr)
     dc1dk2 = c1 / k2
-    c0 = 3.0 * k2 ** 2.0 * tau * pr + pr * (tau - 1.0 / r0)
+    # c0 = 3.0 * k2 ** 2.0 * tau * pr + pr * (tau - 1.0 / r0)
     dc0dk2 = 6.0 * k2 * tau * pr
 
     j21 = 2.0 * c2 * lam + c1
