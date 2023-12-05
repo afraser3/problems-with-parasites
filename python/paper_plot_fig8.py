@@ -8,7 +8,9 @@ plt.style.use('style_file.mplstyle')
 log_x = False
 log_y = True
 
-N = 17
+N = 17  # number of Fourier modes to include in parasite EVP (positive, negative, and zero mode included)
+ks = np.append(np.geomspace(1e-6, 0.1, num=50, endpoint=False), np.linspace(0.1, 2.0))
+
 # RGB parameters
 tau1 = 1e-7
 Pr1 = 1e-6
@@ -23,19 +25,12 @@ Pm2 = 1.0
 DB2 = Pr2 / Pm2
 HBs2 = [1e-3, 1e-1]
 
-delta = 0.0  # from KH analysis -- leave at 0
+delta = 0.0  # from KH analysis -- leave at 0, corresponds to finding parasites with x-periodicity matching lambda_f
 C1 = 0.62
 C2 = 0.33
-kb = 1.24  # value of C1 to use whenever using eq32
-ch = 1.66  # value of 1/C2 to use sometimes?
+kb = 1.24  # value of C1 to use whenever using eq32 (i.e. the HG19 model and/or the Brown model)
 
-# ks = np.append(np.append(np.linspace(0.0025, 0.05, num=20, endpoint=False),
-#                          np.linspace(0.05, 0.275, num=50, endpoint=False)),
-#                np.linspace(0.275, 0.6, num=50))
-ks = np.append(np.geomspace(1e-6, 0.1, num=50, endpoint=False), np.linspace(0.1, 2.0))
-# ks = np.append(np.geomspace(1e-6, 0.1, num=20, endpoint=False), np.linspace(0.1, 2.0, num=20))
-
-# Set up the array of rs to solve for, and thus the R0s
+# Set up the array of rs (reduced density ratios) to solve for, and thus the R0s
 rs = np.linspace(1/49, 1, num=49, endpoint=False)
 # r = (R0 - 1.0) / ((1.0 / tau) - 1)
 R0s1 = rs*((1/tau1) - 1) + 1
