@@ -351,7 +351,7 @@ def parasite_results(R0, HB, Pr, tau, DB, ks, N, lamhat, l2hat,
                             lamhat=lamhat, l2hat=l2hat, get_kmax=True)
         else:
             wf, k_max = w_f(Pr, tau, R0, HB, DB, ks, N, delta, ideal, CH=CH,
-                            lamhat=lamhat, l2hat=l2hat, get_kmax=True)
+                            lamhat=lamhat, l2hat=l2hat, get_kmax=True, badks_exception=badks_exception)
     # NOTE kb and C1 are the same thing. 1.24 is the pre-FRG23 value, 0.62 is the new one
     # kb = 1.24
     fc = C1 * wf**2.0/(R0*(lamhat + tau * l2hat))
