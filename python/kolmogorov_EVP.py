@@ -438,6 +438,8 @@ def Sams_Lmat(N, f, k, m, A_Psi, A_T, A_C, flag, Pr, tau, R_0, Pm, H_b):
 
         # A field
 
+        # I think the second term below has a typo: the k_m^2 shouldn't be there. But it's not in the code, so it's
+        # just a typo in the documentation/comment as far as I can tell.
         # \lambda A +    i k_m^2 k_x k_z E_{\psi}\left(  A_{m+1} +  A_{m-1} \right) = -D_B k_m^2 A_m + k_z i \psi_m
 
         AA_P = -1j * k * k_z * A_Psi
@@ -471,6 +473,8 @@ def Sams_Lmat(N, f, k, m, A_Psi, A_T, A_C, flag, Pr, tau, R_0, Pm, H_b):
 
         # neighboring interactions
 
+        # this is executed for all but the first i, as a way to handle the fact that the most-negative Fourier mode
+        # doesn't have an m,m-1 interaction because we're truncating the m-1 part for that mode
         if (index > 0):
             A[index, index - stride] = PsiPsi_N
             A[index + 1, index - stride] = TPsi_N
@@ -480,6 +484,7 @@ def Sams_Lmat(N, f, k, m, A_Psi, A_T, A_C, flag, Pr, tau, R_0, Pm, H_b):
 
             A[index + 3, index - stride + 3] = AA_N
 
+        # this is likewise executed for all but the last i
         if (index + stride + 3 < dim):
             A[index, index + stride] = PsiPsi_P
             A[index + 1, index + stride] = TPsi_P
