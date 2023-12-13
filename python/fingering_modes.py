@@ -134,3 +134,12 @@ def gaml2max(pr, tau, r0):
         x[1] = x[1] ** 2.0  # whatever calls gaml2max expects k^2, not k
     return x
 
+
+def characteristic_polynomial(pr, tau, r0, l2):
+    # the following are just the coefficients from BGS13 eq 19, or see `eq1` above
+    a2 = l2 * (1.0 + pr + tau)
+    a1 = l2 ** 2.0 * (tau * pr + pr + tau) + pr * (1.0 - 1.0 / r0)
+    a0 = l2 ** 3.0 * tau * pr + l2 * pr * (tau - 1.0 / r0)
+    char_pol = np.polynomial.polynomial.Polynomial([a0, a1, a2, 1.0])
+    return char_pol
+
