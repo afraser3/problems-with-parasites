@@ -498,16 +498,17 @@ def Sams_Lmat(N, f, k, m, A_Psi, A_T, A_C, flag, Pr, tau, R_0, Pm, H_b):
 
 
 def gamfromL(L, withmode=False):
-    w, v = np.linalg.eig(L)
     if withmode:
+        w, v = np.linalg.eig(L)
         ind = np.argmax(-np.imag(w))
         return [-np.imag(w[ind]), v[:, ind]]
     else:
+        w = np.linalg.eigvals(L)
         return np.max(-np.imag(w))
 
 
 def omegafromL(L):
-    w, v = np.linalg.eig(L)
+    w = np.linalg.eigvals(L)
     wsort = w[np.argsort(-np.imag(w))]
     return wsort[-1]
 
@@ -556,13 +557,14 @@ def sigma_from_fingering_params(delta, w, HB, DB, Pr, tau, R0, k_star, N, withmo
             A_C = -lhat * A_psi / (R0 * (lamhat + tau * l2hat))
             N_Sam = int((N-1)/2)  # Sam's definition of N is different than mine
             L = Sams_Lmat(N_Sam, 0, lhat, kz, A_psi, A_T, A_C, 0, Pr, tau, R0, Pr/DB, HB)
-            w, v = np.linalg.eig(L)
+            w = np.linalg.eigvals(L)
             ind = np.argmax(np.real(w))
             if get_frequency:
                 evalue = w[ind]
             else:
                 evalue = np.real(w[ind])
             if withmode:
+                w, v = np.linalg.eig(L)
                 return [evalue, v[:, ind]]
             else:
                 return evalue
