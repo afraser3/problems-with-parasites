@@ -32,6 +32,8 @@ import numpy as np
 from scipy import optimize as opt
 import kolmogorov_EVP
 import fingering_modes
+from joblib import Parallel, delayed
+from os import cpu_count
 
 
 def w_f(Pr, tau, R0, HB, DB, ks, N, delta=0.0, ideal=False, badks_exception=True, get_kmax=False, CH=1.66, lamhat=0.0,
@@ -377,16 +379,35 @@ def results_vs_r0(r0s, HB, Pr, tau, DB, ks, N, lamhats, l2hats, eq32=False, doub
     else:
         names = ["FC", "FT", "NuC", "NuT", "gammatot", "wf", "Re-star", "HB-star", "kmax-star"]
     results_scan = {name: np.zeros_like(r0s) for name in names}
-    for ri, r0 in enumerate(r0s):
-        if eq32:
+    if eq32:
+        # just a simple wrapper for parasite results call so that the parallel call is cleaner
+        def res1(ri,r0):
             # result_ri = parasite_results(r0, HB, Pr, tau, DB, ks, N, lamhats[ri], l2hats[ri], eq32=True, CH=CH, C1=C1)
             result_ri = parasite_results(r0, HB, Pr, tau, DB, ks, N, lamhats[ri], l2hats[ri], eq32=True, C2=C2, C1=C1)
+            return [ri, result_ri]
+
+        parallel_results = Parallel(n_jobs=cpu_count())(delayed(res1)(ri,r0) for ri, r0 in enumerate(r0s))
+
+        # Now unpack into results_scan
+        for res in parallel_results:
+            ri = res[0]
+            result_ri = res[1]
             for name in names:
                 results_scan[name][ri] = result_ri[name]
-        else:
-            print('solving for R0 = ', r0)
+    else:
+        # just a simple wrapper for parasite results call so that the parallel call is cleaner
+        def res1(ri,r0):
+            print('solving for R0 = ', r0, "ri =", ri)
             result_ri = parasite_results(r0, HB, Pr, tau, DB, ks, N, lamhats[ri], l2hats[ri], eq32=False,
                                          double_N=double_N, delta=delta, ideal=ideal, badks_exception=badks_exception, withTC=withTC, Sam=Sam, C1=C1, C2=C2)
+            return [ri, result_ri]
+
+        parallel_results = Parallel(n_jobs=cpu_count())(delayed(res1)(ri,r0) for ri, r0 in enumerate(r0s))
+
+        # Now unpack into results_scan
+        for res in parallel_results:
+            ri = res[0]
+            result_ri = res[1]
             for name in names:
                 results_scan[name][ri] = result_ri[name]
     return results_scan
