@@ -13,6 +13,7 @@ skip_WD = False
 also_plot_heat_flux = False
 
 N = 17  # number of Fourier modes to include in parasite EVP (positive, negative, and zero mode included)
+# N = 21
 ks = np.append(np.geomspace(1e-6, 0.1, num=50, endpoint=False), np.linspace(0.1, 2.0))
 # ks = np.append(np.geomspace(1e-8, 0.1, num=100, endpoint=False), np.linspace(0.1, 2.0, num=100))
 
@@ -123,7 +124,8 @@ if not skip_WD:
     plt.ylabel(r'$D_C/\kappa_C$')
 
 plt.tight_layout()
-plt.savefig('figures/Fig8_NuC_N17.pdf')
+# plt.savefig('figures/Fig8_NuC_N21.pdf')
+plt.savefig('figures/Fig7.pdf')
 
 if also_plot_heat_flux:
     plt.close()
@@ -171,4 +173,4 @@ if also_plot_heat_flux:
     plt.ylabel(r'$D_T/\kappa_T$')
 
     plt.tight_layout()
-    plt.savefig('figures/Fig8_NuT_N17.pdf')
+    plt.savefig('figures/Fig7_NuT_N17.pdf')
