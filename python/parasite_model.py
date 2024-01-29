@@ -358,8 +358,8 @@ def parasite_results(R0, HB, Pr, tau, DB, ks, N, lamhat, l2hat,
     # kb = 1.24
     fc = C1 * wf**2.0/(R0*(lamhat + tau * l2hat))
     ft = C1 * wf**2.0/(lamhat + l2hat)
-    nu_t = NuT(wf, lamhat, l2hat)
-    nu_c = NuC(tau, wf, lamhat, l2hat)
+    nu_t = NuT(wf, lamhat, l2hat, KB=C1)
+    nu_c = NuC(tau, wf, lamhat, l2hat, KB=C1)
     m2, re = kolmogorov_EVP.KHparams_from_fingering(wf, np.sqrt(l2hat), HB, Pr, DB)[:2]
     gamma_tot = R0 * nu_t / (tau * nu_c)
     if eq32:
