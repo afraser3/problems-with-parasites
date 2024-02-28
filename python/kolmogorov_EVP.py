@@ -370,7 +370,7 @@ def Lmat2_withTC(HB, DB, Pr, R0, tau, A_phi, A_T, A_C, k0, kz, delta, N, ideal=F
     return L
 
 
-def Sams_Lmat(N, f, k, m, A_Psi, A_T, A_C, flag, Pr, tau, R_0, Pm, H_b):
+def Sams_Lmat(N, f, k, m, A_Psi, A_T, A_C, flag, Pr, tau, R_0, Pm, H_b, no_TC=False):
     # This is Sam Reifenstein's code that I'm simply copy+pasting into mine and can verify that it works
     dim = (2 * N + 1) * 4
     D_b = Pr / Pm
@@ -404,9 +404,9 @@ def Sams_Lmat(N, f, k, m, A_Psi, A_T, A_C, flag, Pr, tau, R_0, Pm, H_b):
         PsiT = -1j * Pr * k_x / k_mode ** 2
         PsiC = 1j * Pr * k_x / k_mode ** 2
 
-        # if (no_TC):
-            # PsiT = PsiT * flag
-            # PsiC = PsiC * flag
+        if no_TC:
+            PsiT = PsiT * flag
+            PsiC = PsiC * flag
 
         PsiA = 1j * k_z * H_b
 
@@ -519,7 +519,7 @@ def gamfromparams(delta, M2, Re, Rm, k, N, ideal, withmode=False):
 
 
 def sigma_from_fingering_params(delta, w, HB, DB, Pr, tau, R0, k_star, N, withmode=False, withTC=False, Sam=False,
-                                get_frequency=False):
+                                get_frequency=False, test_Sam_no_TC=False):
     """
     Returns fastest growing mode's growth rate for Kolmogorov flow problem, set up so that you can input parameters
     in PADDIM units (except for k_star) rather than normalized to the sinusoidal flow
@@ -556,7 +556,7 @@ def sigma_from_fingering_params(delta, w, HB, DB, Pr, tau, R0, k_star, N, withmo
             A_T = -lhat * A_psi / (lamhat + l2hat)
             A_C = -lhat * A_psi / (R0 * (lamhat + tau * l2hat))
             N_Sam = int((N-1)/2)  # Sam's definition of N is different than mine
-            L = Sams_Lmat(N_Sam, 0, lhat, kz, A_psi, A_T, A_C, 0, Pr, tau, R0, Pr/DB, HB)
+            L = Sams_Lmat(N_Sam, 0, lhat, kz, A_psi, A_T, A_C, 0, Pr, tau, R0, Pr/DB, HB, no_TC=test_Sam_no_TC)
             w = np.linalg.eigvals(L)
             ind = np.argmax(np.real(w))
             if get_frequency:
@@ -662,14 +662,14 @@ def gammax_minus_lambda(w, lamhat, lhat, HB, Pr, DB, delta, ks, N, ideal=False, 
     return out
 
 
-def gamma_over_k_withTC(delta, w, HB, DB, Pr, tau, R0, ks, N, Sam=False, get_frequencies=False):
+def gamma_over_k_withTC(delta, w, HB, DB, Pr, tau, R0, ks, N, Sam=False, get_frequencies=False, test_Sam_no_TC=False):
     # note these ks are really k_stars not k_hats
     # As in, k_star = k_hat / lhat (where k_hat is \hat{k_z} in the paper)
-    return [sigma_from_fingering_params(delta, w, HB, DB, Pr, tau, R0, k, N, withTC=True, Sam=Sam, get_frequency=get_frequencies) for k in ks]
+    return [sigma_from_fingering_params(delta, w, HB, DB, Pr, tau, R0, k, N, withTC=True, Sam=Sam, get_frequency=get_frequencies, test_Sam_no_TC=test_Sam_no_TC) for k in ks]
 
 
-def gammax_kscan_withTC(delta, w, HB, DB, Pr, tau, R0, ks, N, badks_except=False, get_kmax=False, Sam=False):
-    gammas = gamma_over_k_withTC(delta, w, HB, DB, Pr, tau, R0, ks, N, Sam=Sam)
+def gammax_kscan_withTC(delta, w, HB, DB, Pr, tau, R0, ks, N, badks_except=False, get_kmax=False, Sam=False, test_Sam_no_TC=False):
+    gammas = gamma_over_k_withTC(delta, w, HB, DB, Pr, tau, R0, ks, N, Sam=Sam, test_Sam_no_TC=test_Sam_no_TC)
     ind = np.argmax(gammas)
     gammax = gammas[ind]
     if badks_except and gammax > 0.0:  # ASSUMING USER DOESN'T CARE ABOUT GAMMA_MAX IF IT'S NEGATIVE
@@ -689,7 +689,7 @@ def gammax_kscan_withTC(delta, w, HB, DB, Pr, tau, R0, ks, N, badks_except=False
         return np.max(gammas)
 
 
-def gammax_minus_lambda_withTC(w, lamhat, delta, HB, DB, Pr, tau, R0, ks, N, badks_exception=False, C2=0.33, Sam=False):
+def gammax_minus_lambda_withTC(w, lamhat, delta, HB, DB, Pr, tau, R0, ks, N, badks_exception=False, C2=0.33, Sam=False, test_Sam_no_TC=False):
     # a silly helper function that returns sigma - lambda rather than sigma
     # so that I can use root-finding packages to search for zeros of this
     # function
@@ -701,7 +701,7 @@ def gammax_minus_lambda_withTC(w, lamhat, delta, HB, DB, Pr, tau, R0, ks, N, bad
     while True:
         count += 1
         try:
-            out = gammax_kscan_withTC(delta, w, HB, DB, Pr, tau, R0, ks, N, badks_exception, Sam=Sam) * C2 - lamhat
+            out = gammax_kscan_withTC(delta, w, HB, DB, Pr, tau, R0, ks, N, badks_exception, Sam=Sam, test_Sam_no_TC=test_Sam_no_TC) * C2 - lamhat
             break
         except ValueError:
             # the max occurs at the upper end of ks so seldomly
