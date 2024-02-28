@@ -153,7 +153,7 @@ def w_f(Pr, tau, R0, HB, DB, ks, N, delta=0.0, ideal=False, badks_exception=True
 
 
 def w_f_withTC(Pr, tau, R0, HB, DB, ks, N, badks_exception=True, get_kmax=False, C2=0.33, lamhat=0.0,
-        l2hat=0.0, Sam=False):
+        l2hat=0.0, Sam=False, test_Sam_no_TC=False):
     """
     Same as w_f above (see that docstring) but using the extended "with T&C" model of Fraser, Reifenstein, Garaud 2023
 
@@ -194,7 +194,7 @@ def w_f_withTC(Pr, tau, R0, HB, DB, ks, N, badks_exception=True, get_kmax=False,
     w1 = 2.0 * np.pi * lamhat / lhat  # HB = 0 solution
     w2 = np.sqrt(2.0 * HB)  # HB -> infinity solution
     wbounds = [w1, w1 + w2]  # the answer never lies below w1, but sometimes it's above w2
-    args = (lamhat, 0, HB, DB, Pr, tau, R0, ks, N, badks_exception, C2, Sam)
+    args = (lamhat, 0, HB, DB, Pr, tau, R0, ks, N, badks_exception, C2, Sam, test_Sam_no_TC)
     count = 0  # Used for troubleshooting/monitoring just how bad the original wbounds are
     while True:
         count += 1  # Every time we fail to get the wbounds right, increment count to see how many retries were needed
@@ -204,13 +204,13 @@ def w_f_withTC(Pr, tau, R0, HB, DB, ks, N, badks_exception=True, get_kmax=False,
         # certain model parameters that don't need to be tinkered with.
         try:
             rbound_eval = kolmogorov_EVP.gammax_minus_lambda_withTC(wbounds[1], lamhat, 0, HB, DB, Pr, tau, R0, ks, N,
-                                                                    badks_exception, C2, Sam)
+                                                                    badks_exception, C2, Sam, test_Sam_no_TC)
             while rbound_eval < 0:
                 print('adjusting bounds preemptively, count=', count)
                 count += 1
                 wbounds = [wbounds[1], 2.0 * wbounds[1]]
                 rbound_eval = kolmogorov_EVP.gammax_minus_lambda_withTC(wbounds[1], lamhat, 0, HB, DB, Pr, tau, R0, ks,
-                                                                        N, badks_exception, C2, Sam)
+                                                                        N, badks_exception, C2, Sam, test_Sam_no_TC)
             if count > 1:
                 print('i shall proceed')
             sol = opt.root_scalar(kolmogorov_EVP.gammax_minus_lambda_withTC, args=args, bracket=wbounds)
@@ -219,9 +219,9 @@ def w_f_withTC(Pr, tau, R0, HB, DB, ks, N, badks_exception=True, get_kmax=False,
         except ValueError:
             # Now that I've added the preceding rbound_eval business, the following is mostly obsolete
             lbound_eval = kolmogorov_EVP.gammax_minus_lambda_withTC(wbounds[0], lamhat, 0, HB, DB, Pr, tau, R0, ks, N,
-                                                                    badks_exception, C2, Sam)
+                                                                    badks_exception, C2, Sam, test_Sam_no_TC)
             rbound_eval = kolmogorov_EVP.gammax_minus_lambda_withTC(wbounds[1], lamhat, 0, HB, DB, Pr, tau, R0, ks, N,
-                                                                    badks_exception, C2, Sam)
+                                                                    badks_exception, C2, Sam, test_Sam_no_TC)
             if lbound_eval * rbound_eval > 0:  # want to end up with rbound_eval > 0
                 wbounds = [0.25 * wbounds[0], wbounds[1]]
                 print("adjusting wbounds, count=", count)
@@ -235,7 +235,7 @@ def w_f_withTC(Pr, tau, R0, HB, DB, ks, N, badks_exception=True, get_kmax=False,
         # TODO: this is redundant: I'm solving for kmax by re-calculating gammax
         # delta, w, HB, DB, Pr, tau, R0, ks, N, badks_except=False, get_kmax=False
         gammax, kmax = kolmogorov_EVP.gammax_kscan_withTC(0, sol.root, HB, DB, Pr, tau, R0, ks, N, badks_except=False,
-                                                   get_kmax=get_kmax, Sam=Sam)
+                                                   get_kmax=get_kmax, Sam=Sam, test_Sam_no_TC=test_Sam_no_TC)
         return [sol.root, kmax]
     else:
         return sol.root
@@ -340,7 +340,7 @@ def gamma_tot(tau, R0, w, lamhat, l2hat, KB=1.24):
 #                      withTC=False, Sam=False, C1=1.24, C2=0.33):
 def parasite_results(R0, HB, Pr, tau, DB, ks, N, lamhat, l2hat,
                      eq32=False, double_N=False, delta=0.0, ideal=False, badks_exception=True,
-                     withTC=False, Sam=False, C1=1.24, C2=1/1.66):
+                     withTC=False, Sam=False, C1=1.24, C2=1/1.66, test_Sam_no_TC=False):
     # NOTE C2 and CH mean basically the same thing, one is just the inverse of the other. Pre-FRG23, CH=1.66 was fiducial. Now C2=0.33 is.
     CH = 1/C2
     if withTC:
@@ -352,8 +352,11 @@ def parasite_results(R0, HB, Pr, tau, DB, ks, N, lamhat, l2hat,
             wf, k_max = w_f(Pr, tau, R0, HB, DB, ks, int(2 * N - 1), delta, ideal, CH=CH,
                             lamhat=lamhat, l2hat=l2hat, get_kmax=True)
         else:
-            wf, k_max = w_f(Pr, tau, R0, HB, DB, ks, N, delta, ideal, CH=CH,
-                            lamhat=lamhat, l2hat=l2hat, get_kmax=True, badks_exception=badks_exception)
+            if test_Sam_no_TC:
+                wf, k_max = w_f_withTC(Pr, tau, R0, HB, DB, ks, N, badks_exception=badks_exception, get_kmax=True, C2=C2, lamhat=lamhat, l2hat=l2hat, Sam=Sam, test_Sam_no_TC=test_Sam_no_TC)
+            else:
+                wf, k_max = w_f(Pr, tau, R0, HB, DB, ks, N, delta, ideal, CH=CH,
+                                lamhat=lamhat, l2hat=l2hat, get_kmax=True, badks_exception=badks_exception)
     # NOTE kb and C1 are the same thing. 1.24 is the pre-FRG23 value, 0.62 is the new one
     # kb = 1.24
     fc = C1 * wf**2.0/(R0*(lamhat + tau * l2hat))
@@ -373,7 +376,7 @@ def parasite_results(R0, HB, Pr, tau, DB, ks, N, lamhat, l2hat,
 # def results_vs_r0(r0s, HB, Pr, tau, DB, ks, N, lamhats, l2hats, eq32=False, double_N=False, delta=0.0, ideal=False,
 #                   CH=1.66, badks_exception=True, withTC=False, Sam=False, C1=1.24, C2=0.33):
 def results_vs_r0(r0s, HB, Pr, tau, DB, ks, N, lamhats, l2hats, eq32=False, double_N=False, delta=0.0, ideal=False,
-                  badks_exception=True, withTC=False, Sam=False, C1=1.24, C2=1/1.66):
+                  badks_exception=True, withTC=False, Sam=False, C1=1.24, C2=1/1.66, test_Sam_no_TC=False):
     if eq32:
         names = ["FC", "FT", "NuC", "NuT", "gammatot", "wf", "Re-star", "HB-star"]
     else:
@@ -399,7 +402,7 @@ def results_vs_r0(r0s, HB, Pr, tau, DB, ks, N, lamhats, l2hats, eq32=False, doub
         def res1(ri,r0):
             print('solving for R0 = ', r0, "ri =", ri)
             result_ri = parasite_results(r0, HB, Pr, tau, DB, ks, N, lamhats[ri], l2hats[ri], eq32=False,
-                                         double_N=double_N, delta=delta, ideal=ideal, badks_exception=badks_exception, withTC=withTC, Sam=Sam, C1=C1, C2=C2)
+                                         double_N=double_N, delta=delta, ideal=ideal, badks_exception=badks_exception, withTC=withTC, Sam=Sam, C1=C1, C2=C2, test_Sam_no_TC=test_Sam_no_TC)
             return [ri, result_ri]
 
         parallel_results = Parallel(n_jobs=cpu_count())(delayed(res1)(ri,r0) for ri, r0 in enumerate(r0s))
