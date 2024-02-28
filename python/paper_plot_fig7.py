@@ -12,10 +12,10 @@ plot_hydro_withTC = False
 skip_WD = False
 also_plot_heat_flux = False
 
-N = 17  # number of Fourier modes to include in parasite EVP (positive, negative, and zero mode included)
-# N = 21
+# N = 17  # number of Fourier modes to include in parasite EVP (positive, negative, and zero mode included)
+N = 21
 ks = np.append(np.geomspace(1e-6, 0.1, num=50, endpoint=False), np.linspace(0.1, 2.0))
-# ks = np.append(np.geomspace(1e-8, 0.1, num=100, endpoint=False), np.linspace(0.1, 2.0, num=100))
+# ks = np.append(np.geomspace(1e-8, 0.1, num=100, endpoint=False), np.linspace(0.1, 4.0, num=100))
 
 # RGB parameters
 tau1 = 1e-7
@@ -34,6 +34,8 @@ HBs2 = [1e-3, 1e-1]
 delta = 0.0  # from KH analysis -- leave at 0, corresponds to finding parasites with x-periodicity matching lambda_f
 C1 = 0.62  # for with_TC model
 C2 = 0.33  # for with_TC model
+# C1 = 0.33
+# C2 = 0.62
 # C1 = 1.24  # for no_TC model
 # C2 = 1/1.66  # for no_TC model
 kb = 1.24  # value of C1 to use whenever using eq32 (i.e. the HG19 model and/or the Brown model)
@@ -91,7 +93,7 @@ plt.plot(R0s1, results_withTC1[0][field] - 1, 'o-', c='C2', label=r'$B = 100G$')
 plt.plot(R0s1, results_withTC1[1][field] - 1, 'o-', c='C0', label=r'$B = 1000G$')
 plt.plot(R0s1, results_HG191[0][field] - 1, ':', c='C2')
 plt.plot(R0s1, results_HG191[1][field] - 1, ':', c='C0')
-plt.title(r'RGB\\($\tau = 10^{-7}$, $\mathrm{Pr} = 10^{-6}$, $\mathrm{Pm} = 0.1$)')
+plt.title(r'\begin{center} RGB\\($\tau = 10^{-7}$, $\mathrm{Pr} = 10^{-6}$, $\mathrm{Pm} = 0.1$) \end{center}')
 if log_x:
     plt.xscale("log")
 if log_y:
@@ -101,7 +103,7 @@ plt.xlim((1.0, 1.0/tau1))
 plt.xlabel(r'$R_0$')
 # plt.ylabel(r'$|\hat{F}_C|$')
 plt.ylabel(r'$D_C/\kappa_C$')
-plt.legend(fontsize='small', ncol=2)
+plt.legend(fontsize='x-small', ncol=2)
 
 if not skip_WD:
     plt.subplot(1, 2, 2)
@@ -112,7 +114,7 @@ if not skip_WD:
     plt.plot(R0s2, results_withTC2[1][field] - 1, 'o-', c='C0', label=r'$B = 1000G$')
     plt.plot(R0s2, results_HG192[0][field] - 1, ':', c='C2')
     plt.plot(R0s2, results_HG192[1][field] - 1, ':', c='C0')
-    plt.title(r'WD\\($\tau = 10^{-3}$, $\mathrm{Pr} = 10^{-3}$, $\mathrm{Pm} = 1.0$)')
+    plt.title(r'\begin{center} WD\\($\tau = 10^{-3}$, $\mathrm{Pr} = 10^{-3}$, $\mathrm{Pm} = 1.0$) \end{center}')
     if log_x:
         plt.xscale("log")
     if log_y:
@@ -125,6 +127,7 @@ if not skip_WD:
 
 plt.tight_layout()
 # plt.savefig('figures/Fig8_NuC_N21.pdf')
+# plt.savefig('figures/Fig7_switch-Cs_longer-ks.pdf')
 plt.savefig('figures/Fig7.pdf')
 
 if also_plot_heat_flux:
