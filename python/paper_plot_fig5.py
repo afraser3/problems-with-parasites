@@ -66,7 +66,7 @@ for ri in range(len(R0s_DNS[0])):
     for hbi, hb in enumerate(HBs2):
         FCs_DNS2[hbi, ri], FCs_DNS_var2[hbi, ri] = OUTfile_reader.get_avg_from_DNS(Pr, R0s_DNS[1, ri], hb, Pm2, "flux_Chem", with_variance=True)
     for hbi, hb in enumerate(HBs3):
-        if ri < 4:  # skip R0=9 because we don't have great data for that run
+        if ri < 4 or hbi < 2:  # skip R0=9 (for HB=1) because we don't have great data for that run
             FCs_DNS3[hbi, ri], FCs_DNS_var3[hbi, ri] = OUTfile_reader.get_avg_from_DNS(Pr, R0s_DNS[2, ri], hb, Pm3, "flux_Chem", with_variance=True)
 
 R0s_hydro_DNS = np.array([1.5, 3.0, 5.0, 7.0, 9.0])
@@ -129,9 +129,12 @@ results_hydro_withTC_d = parasite_model.results_vs_r0(R0s, 0.0, Pr, tau, 1.0, ks
 scale = 0.8
 # plt.figure(figsize=(12.8 * scale, 4.8 * scale))
 plt.figure(figsize=(15 * scale, 12 * scale))
+# color1 = 'saddlebrown'
+# colors2 = ['darkblue', 'firebrick']
+# colors3 = ['C0', 'C1', 'C2']
 color1 = 'saddlebrown'
-colors2 = ['darkblue', 'firebrick']
-colors3 = ['C0', 'C1', 'C2']
+colors2 = ['green', 'firebrick']
+colors3 = ['C0', 'C1', 'purple']
 
 plt.subplot(2, 2, 1)
 plt.plot(R0s, results_hydro_noTC['FC'], c='k', label=r'$H_B = 0$')
@@ -143,7 +146,7 @@ for hbi, hb in enumerate(HBs2):
     plt.errorbar(R0s_DNS[1], FCs_DNS2[hbi], fmt='x', yerr=FCs_DNS_var2[hbi], c=colors2[hbi])
 for hbi, hb in enumerate(HBs3):
     plt.plot(R0s, results_noTC3[hbi]['FC'], c=colors3[hbi], label=r'$\mathrm{{Pm}} = 1$, $H_B = {}$'.format(hb))
-    if hbi < 2:  # skip R0=9 for HB=1
+    if hbi == 2:  # skip R0=9 for HB=1
         plt.errorbar(R0s_DNS[2, :-1], FCs_DNS3[hbi, :-1], fmt='x', yerr=FCs_DNS_var3[hbi, :-1], c=colors3[hbi])
     else:
         plt.errorbar(R0s_DNS[2], FCs_DNS3[hbi], fmt='x', yerr=FCs_DNS_var3[hbi], c=colors3[hbi])
@@ -169,7 +172,7 @@ for hbi, hb in enumerate(HBs2):
     plt.errorbar(R0s_DNS[1], FCs_DNS2[hbi], fmt='x', yerr=FCs_DNS_var2[hbi], c=colors2[hbi])
 for hbi, hb in enumerate(HBs3):
     plt.plot(R0s, results_withTC3[hbi]['FC'], c=colors3[hbi], label=r'$\mathrm{{Pm}} = {}$, $H_B = {}$'.format(Pm3, hb))
-    if hbi < 2:  # skip R0=9 for HB=1
+    if hbi == 2:  # skip R0=9 for HB=1
         plt.errorbar(R0s_DNS[2, :-1], FCs_DNS3[hbi, :-1], fmt='x', yerr=FCs_DNS_var3[hbi, :-1], c=colors3[hbi])
     else:
         plt.errorbar(R0s_DNS[2], FCs_DNS3[hbi], fmt='x', yerr=FCs_DNS_var3[hbi], c=colors3[hbi])
@@ -194,7 +197,7 @@ for hbi, hb in enumerate(HBs2):
     plt.errorbar(R0s_DNS[1], FCs_DNS2[hbi], fmt='x', yerr=FCs_DNS_var2[hbi], c=colors2[hbi])
 for hbi, hb in enumerate(HBs3):
     plt.plot(R0s, results_withTC3_c[hbi]['FC'], c=colors3[hbi], label=r'$\mathrm{{Pm}} = {}$, $H_B = {}$'.format(Pm3, hb))
-    if hbi < 2:  # skip R0=9 for HB=1
+    if hbi == 2:  # skip R0=9 for HB=1
         plt.errorbar(R0s_DNS[2, :-1], FCs_DNS3[hbi, :-1], fmt='x', yerr=FCs_DNS_var3[hbi, :-1], c=colors3[hbi])
     else:
         plt.errorbar(R0s_DNS[2], FCs_DNS3[hbi], fmt='x', yerr=FCs_DNS_var3[hbi], c=colors3[hbi])
@@ -219,7 +222,7 @@ for hbi, hb in enumerate(HBs2):
     plt.errorbar(R0s_DNS[1], FCs_DNS2[hbi], fmt='x', yerr=FCs_DNS_var2[hbi], c=colors2[hbi])
 for hbi, hb in enumerate(HBs3):
     plt.plot(R0s, results_withTC3_d[hbi]['FC'], c=colors3[hbi], label=r'$\mathrm{{Pm}} = {}$, $H_B = {}$'.format(Pm3, hb))
-    if hbi < 2:  # skip R0=9 for HB=1
+    if hbi == 2:  # skip R0=9 for HB=1
         plt.errorbar(R0s_DNS[2, :-1], FCs_DNS3[hbi, :-1], fmt='x', yerr=FCs_DNS_var3[hbi, :-1], c=colors3[hbi])
     else:
         plt.errorbar(R0s_DNS[2], FCs_DNS3[hbi], fmt='x', yerr=FCs_DNS_var3[hbi], c=colors3[hbi])
