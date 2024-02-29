@@ -557,14 +557,16 @@ def sigma_from_fingering_params(delta, w, HB, DB, Pr, tau, R0, k_star, N, withmo
             A_C = -lhat * A_psi / (R0 * (lamhat + tau * l2hat))
             N_Sam = int((N-1)/2)  # Sam's definition of N is different than mine
             L = Sams_Lmat(N_Sam, 0, lhat, kz, A_psi, A_T, A_C, 0, Pr, tau, R0, Pr/DB, HB, no_TC=test_Sam_no_TC)
-            w = np.linalg.eigvals(L)
+            if withmode:
+                w, v = np.linalg.eig(L)
+            else:
+                w = np.linalg.eigvals(L)
             ind = np.argmax(np.real(w))
             if get_frequency:
                 evalue = w[ind]
             else:
                 evalue = np.real(w[ind])
             if withmode:
-                w, v = np.linalg.eig(L)
                 return [evalue, v[:, ind]]
             else:
                 return evalue
