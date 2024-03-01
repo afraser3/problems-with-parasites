@@ -64,6 +64,7 @@ gammax_minus_lambda(w, lamhat, lhat, HB, Pr, DB, delta, ks, N,
 # TODO: rename KH growth rate from gamma to sigma for consistency w/ HG18
 import numpy as np
 import fingering_modes
+import scipy.sparse.linalg
 # import scipy
 
 
@@ -664,10 +665,118 @@ def gammax_minus_lambda(w, lamhat, lhat, HB, Pr, DB, delta, ks, N, ideal=False, 
     return out
 
 
-def gamma_over_k_withTC(delta, w, HB, DB, Pr, tau, R0, ks, N, Sam=False, get_frequencies=False, test_Sam_no_TC=False):
+def gamma_over_k_withTC(delta, w, HB, DB, Pr, tau, R0, ks, N, Sam=False, get_frequencies=False, test_Sam_no_TC=False, sparse_method=False, pass_sigma=True):
     # note these ks are really k_stars not k_hats
     # As in, k_star = k_hat / lhat (where k_hat is \hat{k_z} in the paper)
-    return [sigma_from_fingering_params(delta, w, HB, DB, Pr, tau, R0, k, N, withTC=True, Sam=Sam, get_frequency=get_frequencies, test_Sam_no_TC=test_Sam_no_TC) for k in ks]
+    if sparse_method and len(ks) > 1 and Sam:
+        lamhat, l2hat = fingering_modes.gaml2max(Pr, tau, R0)
+        lhat = np.sqrt(l2hat)
+        kz_hats = ks * lhat
+        A_psi = w / (2 * lhat)
+        A_T = -lhat * A_psi / (lamhat + l2hat)
+        A_C = -lhat * A_psi / (R0 * (lamhat + tau * l2hat))
+        N_Sam = int((N - 1) / 2)  # Sam's definition of N is different than mine
+        L = Sams_Lmat(N_Sam, 0, lhat, kz_hats[0], A_psi, A_T, A_C, 0, Pr, tau, R0, Pr / DB, HB, no_TC=test_Sam_no_TC)
+        w, v = np.linalg.eig(L)
+        # char_poly1 = fingering_modes.characteristic_polynomial(Pr, tau, R0, l2hat)
+        # roots1 = char_poly1.roots()
+        # root1 = np.max(np.real(roots1))
+        root1 = lamhat
+        char_poly2 = fingering_modes.characteristic_polynomial(Pr, tau, R0, 4 * l2hat)
+        roots2 = char_poly2.roots()
+        root2 = np.max(np.real(roots2))  # lamhat is the growth rate of elevator modes with kx = lhat. root2 is the growth rate of elevator modes with kx = 2*lhat
+        # next, find the two eigenvalues/vectors closest to the elevator mode solutions
+        # (how do I know which of those two I need? Refer back to perturbation theory in QM)
+        # and the two closest to the m=2 root,
+        # then enter a loop where, at each k, we use the 4 (ideally 2) eigenvectors from the previous k
+        # as initial guesses for scipy.sparse.linalg.eigs.
+        # Things that might go wrong:
+        # - the lowest kz might not be low enough for the parasites to asymptotically approach elevator mode solutions
+        # - I'm basing all my intuition for this method off of RGB star parameters (specifically fig 7a from FRG24), but it's very possible that other branches somehow matter in other parameters
+        # - (for instance, my parasite_structures_vs_R0 plots for the RGB case show an oscillatory branch that's always unstable just never actually dominates, but what if in some other star it does dominate?)
+        # - Maybe other elevator mode solutions (other roots at the same kx, or higher kx's) matter in other stars?
+        closest_ws_to_root1 = np.argsort(np.abs(w - root1))
+        elevator1_asymptote_ind1 = closest_ws_to_root1[0]
+        elevator1_asymptote_ind2 = closest_ws_to_root1[1]
+        elevator1_mode1 = v[:, elevator1_asymptote_ind1]
+        elevator1_mode2 = v[:, elevator1_asymptote_ind2]
+
+        closest_ws_to_root2 = np.argsort(np.abs(w - root2))
+        elevator2_asymptote_ind1 = closest_ws_to_root2[0]
+        elevator2_asymptote_ind2 = closest_ws_to_root2[1]
+        elevator2_mode1 = v[:, elevator2_asymptote_ind1]
+        elevator2_mode2 = v[:, elevator2_asymptote_ind2]
+
+        elevator1_evalue1s = np.zeros(len(kz_hats), dtype=np.complex128)
+        elevator1_evalue1s[0] = w[elevator1_asymptote_ind1]
+        elevator1_evalue2s = np.zeros_like(elevator1_evalue1s)
+        elevator1_evalue2s[0] = w[elevator1_asymptote_ind2]
+        elevator2_evalue1s = np.zeros_like(elevator1_evalue1s)
+        elevator2_evalue1s[0] = w[elevator2_asymptote_ind1]
+        elevator2_evalue2s = np.zeros_like(elevator1_evalue1s)
+        elevator2_evalue2s[0] = w[elevator2_asymptote_ind2]
+
+        elevator1_mode1s = np.zeros((len(kz_hats), len(elevator1_mode1)), dtype=np.complex128)
+        elevator1_mode1s[0] = elevator1_mode1
+        elevator1_mode2s = np.zeros_like(elevator1_mode1s)
+        elevator1_mode2s[0] = elevator1_mode2
+        elevator2_mode1s = np.zeros_like(elevator1_mode1s)
+        elevator2_mode1s[0] = elevator2_mode1
+        elevator2_mode2s = np.zeros_like(elevator1_mode1s)
+        elevator2_mode2s[0] = elevator2_mode2
+        # print(elevator1_evalue1s[0])
+        # print(elevator1_evalue2s[0])
+        # print(elevator2_evalue1s[0])
+        # print(elevator2_evalue2s[0])
+        # print(np.max(np.abs(elevator1_mode1)))
+        # print(np.max(np.abs(elevator1_mode2)))
+        # print(np.max(np.abs(elevator2_mode1)))
+        # print(np.max(np.abs(elevator2_mode2)))
+        for ki, kzhat in enumerate(kz_hats[1:], 1):
+            L = Sams_Lmat(N_Sam, 0, lhat, kzhat, A_psi, A_T, A_C, 0, Pr, tau, R0, Pr / DB, HB, no_TC=test_Sam_no_TC)
+            # first try passing v0 but not sigma. Should do a speed test comparing what happens when you pass sigma too, but that will affect the 'which' argument
+            # note I have no idea what the ncz argument is or does or if we should touch it
+            # note also that if we provide sigma, we can probably speed things up by calculating "OPinv" analytically and providing it, rather than having scipy calculate it numerically
+            # note also that this *might* be sped up by using Rich's version of L that has all-real coefficients
+            if pass_sigma:
+                out = scipy.sparse.linalg.eigs(L, k=1, sigma=elevator1_evalue1s[ki-1], v0=elevator1_mode1s[ki-1], which='LM')
+                elevator1_evalue1s[ki] = out[0]
+                elevator1_mode1s[ki] = out[1][0]
+                out = scipy.sparse.linalg.eigs(L, k=1, sigma=elevator1_evalue2s[ki-1], v0=elevator1_mode2s[ki-1], which='LM')
+                elevator1_evalue2s[ki] = out[0]
+                elevator1_mode2s[ki] = out[1][0]
+                out = scipy.sparse.linalg.eigs(L, k=1, sigma=elevator2_evalue1s[ki-1], v0=elevator2_mode1s[ki-1], which='LM')
+                elevator2_evalue1s[ki] = out[0]
+                elevator2_mode1s[ki] = out[1][0]
+                out = scipy.sparse.linalg.eigs(L, k=1, sigma=elevator2_evalue2s[ki-1], v0=elevator2_mode2s[ki-1], which='LM')
+                elevator2_evalue2s[ki] = out[0]
+                elevator2_mode2s[ki] = out[1][0]
+            else:  # preliminary testing suggests that this route is trash
+                out = scipy.sparse.linalg.eigs(L, k=1, v0=elevator1_mode1s[ki-1], which='LM')
+                elevator1_evalue1s[ki] = out[0]
+                elevator1_mode1s[ki] = out[1][0]
+                out = scipy.sparse.linalg.eigs(L, k=1, v0=elevator1_mode2s[ki-1], which='LM')
+                elevator1_evalue2s[ki] = out[0]
+                elevator1_mode2s[ki] = out[1][0]
+                out = scipy.sparse.linalg.eigs(L, k=1, v0=elevator2_mode1s[ki-1], which='LM')
+                elevator2_evalue1s[ki] = out[0]
+                elevator2_mode1s[ki] = out[1][0]
+                out = scipy.sparse.linalg.eigs(L, k=1, v0=elevator2_mode2s[ki-1], which='LM')
+                elevator2_evalue2s[ki] = out[0]
+                elevator2_mode2s[ki] = out[1][0]
+            # print(ki, kzhat)
+            # print(elevator1_evalue1s[ki])
+            # print(elevator1_evalue2s[ki])
+            # print(elevator2_evalue1s[ki])
+            # print(elevator2_evalue2s[ki])
+            # print(np.max(np.abs(elevator1_mode1s[ki])))
+            # print(np.max(np.abs(elevator1_mode2s[ki])))
+            # print(np.max(np.abs(elevator2_mode1s[ki])))
+            # print(np.max(np.abs(elevator2_mode2s[ki])))
+        return elevator1_evalue1s, elevator1_mode1s, elevator1_evalue2s, elevator1_mode2s, elevator2_evalue1s, elevator2_mode1s, elevator2_evalue2s, elevator2_mode2s
+
+    else:
+        return [sigma_from_fingering_params(delta, w, HB, DB, Pr, tau, R0, k, N, withTC=True, Sam=Sam, get_frequency=get_frequencies, test_Sam_no_TC=test_Sam_no_TC) for k in ks]
 
 
 def gammax_kscan_withTC(delta, w, HB, DB, Pr, tau, R0, ks, N, badks_except=False, get_kmax=False, Sam=False, test_Sam_no_TC=False):
