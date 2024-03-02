@@ -64,7 +64,7 @@ gammax_minus_lambda(w, lamhat, lhat, HB, Pr, DB, delta, ks, N,
 # TODO: rename KH growth rate from gamma to sigma for consistency w/ HG18
 import numpy as np
 import fingering_modes
-import scipy.sparse.linalg
+import scipy.sparse
 # import scipy
 
 
@@ -498,6 +498,149 @@ def Sams_Lmat(N, f, k, m, A_Psi, A_T, A_C, flag, Pr, tau, R_0, Pm, H_b, no_TC=Fa
     return A
 
 
+def Richs_build_matrix(N, k_z, R0, Pr, tau, l_f, E_psi, E_T, E_C, H_B, D_B):
+    # Build the Fraser+(2023, F23) eigenproblem matrix given:
+    #
+    # N    - summation limit in eqn. (43) of F23
+    # k_z  - vertical wavenumber squared
+    # R0   - density ratio
+    # Pr   - Prandtl number
+    # tau  - inverse Lewis number
+    # w_f  - vertical velocity amplitude of fastest-growing elevator mode
+    # H_B  - Lorentz-force strength
+    # D_B  - resistive diffusivity ratio
+
+    # Evaluate fingering mode properties
+
+    # lam_f, l2hat = fingering_modes.gaml2max(Pr, tau, R0)
+    # l_f = np.sqrt(l2hat)
+
+    # Evaluate the various E's
+
+    # E_psi = w_f / (2 * l_f)  # F23, after eqn. (36)
+    # E_T = -l_f * E_psi / (lam_f + l_f ** 2)  # F23, eqn. (42)
+    # E_C = -l_f * E_psi / (R0 * (lam_f + tau * l_f ** 2))  # F23, eqn. (42)
+
+    # Set up the matrix elements
+
+    n = 4 * (2 * N + 1)
+
+    Q = np.zeros((n, n), dtype=complex)
+
+    for m in range(-N, N + 1):
+
+        # Set up block indices
+
+        i_p = 4 * (m + N)
+        i_p_p = i_p + 4
+        i_p_m = i_p - 4
+
+        i_t = 4 * (m + N) + 1
+        i_t_p = i_t + 4
+        i_t_m = i_t - 4
+
+        i_c = 4 * (m + N) + 2
+        i_c_p = i_c + 4
+        i_c_m = i_c - 4
+
+        i_a = 4 * (m + N) + 3
+        i_a_p = i_a + 4
+        i_a_m = i_a - 4
+
+        # Evaluate wavenumbers (after eqn. 39 of F23)
+
+        k2_m = m ** 2 * l_f ** 2 + k_z ** 2
+
+        k2_m_p = (m + 1) ** 2 * l_f ** 2 + k_z ** 2
+        k2_m_m = (m - 1) ** 2 * l_f ** 2 + k_z ** 2
+
+        # Set matrix elements
+
+        # Eqn. (44), divided by k_2m
+
+        Q[i_p, i_p] = -Pr * k2_m
+        Q[i_p, i_t] = -1j * Pr * m * l_f / k2_m
+        Q[i_p, i_c] = 1j * Pr * m * l_f / k2_m
+        Q[i_p, i_a] = 1j * H_B * k_z
+
+        if m > -N:
+            Q[i_p, i_p_m] = 1j * l_f ** 3 * k_z * E_psi / k2_m - 1j * l_f * k_z * E_psi * k2_m_m / k2_m
+        if m < N:
+            Q[i_p, i_p_p] = 1j * l_f ** 3 * k_z * E_psi / k2_m - 1j * l_f * k_z * E_psi * k2_m_p / k2_m
+
+        # Eqn. (45)
+
+        Q[i_t, i_p] = -1j * m * l_f
+        Q[i_t, i_t] = -k2_m
+
+        if m > -N:
+            Q[i_t, i_p_m] = -l_f * k_z * E_T
+            Q[i_t, i_t_m] = -1j * l_f * k_z * E_psi
+        if m < N:
+            Q[i_t, i_p_p] = l_f * k_z * E_T
+            Q[i_t, i_t_p] = -1j * l_f * k_z * E_psi
+
+        # Eqn. (46)
+
+        Q[i_c, i_p] = -1j * m * l_f / R0
+        Q[i_c, i_c] = -tau * k2_m
+
+        if m > -N:
+            Q[i_c, i_p_m] = -l_f * k_z * E_C
+            Q[i_c, i_c_m] = -1j * l_f * k_z * E_psi
+        if m < N:
+            Q[i_c, i_p_p] = l_f * k_z * E_C
+            Q[i_c, i_c_p] = -1j * l_f * k_z * E_psi
+
+        # Eqn. (47)
+
+        Q[i_a, i_p] = 1j * k_z
+        Q[i_a, i_a] = -D_B * k2_m
+
+        if m > -N:
+            Q[i_a, i_a_m] = -1j * l_f * k_z * E_psi
+        if m < N:
+            Q[i_a, i_a_p] = -1j * l_f * k_z * E_psi
+
+    return Q
+
+
+def Richs_build_matrix_real(N, k_z, R0, Pr, tau, l_f, E_psi, E_T, E_C, H_B, D_B):
+    # Build the real version of the Fraser+(2023, F23) eigenproblem matrix
+
+    Q = Richs_build_matrix(N, k_z, R0, Pr, tau, l_f, E_psi, E_T, E_C, H_B, D_B)
+
+    # Transform variables
+
+    n = 4 * (2 * N + 1)
+
+    for m in range(-N, N + 1):
+        # Set up block indices
+
+        i_p = 4 * (m + N)
+        i_t = 4 * (m + N) + 1
+        i_c = 4 * (m + N) + 2
+        i_a = 4 * (m + N) + 3
+
+        # Scale columns
+
+        Q[:, i_p] *= 1j ** m
+        Q[:, i_t] *= 1j ** (m + 1)
+        Q[:, i_c] *= 1j ** (m + 1)
+        Q[:, i_a] *= 1j ** (m + 1)
+
+        # Scale rows
+
+        Q[i_p, :] /= 1j ** m
+        Q[i_t, :] /= 1j ** (m + 1)
+        Q[i_c, :] /= 1j ** (m + 1)
+        Q[i_a, :] /= 1j ** (m + 1)
+
+    # Return the matrix and the horizontal wavenumber
+
+    return Q
+
+
 def gamfromL(L, withmode=False):
     if withmode:
         w, v = np.linalg.eig(L)
@@ -665,18 +808,21 @@ def gammax_minus_lambda(w, lamhat, lhat, HB, Pr, DB, delta, ks, N, ideal=False, 
     return out
 
 
-def gamma_over_k_withTC(delta, w, HB, DB, Pr, tau, R0, ks, N, Sam=False, get_frequencies=False, test_Sam_no_TC=False, sparse_method=False, pass_sigma=True):
+def gamma_over_k_withTC(delta, wf, HB, DB, Pr, tau, R0, ks, N, Sam=False, get_frequencies=False, test_Sam_no_TC=False, sparse_method=False, pass_sigma=True, sparse_matrix=None, Richs_matrix=False):
     # note these ks are really k_stars not k_hats
     # As in, k_star = k_hat / lhat (where k_hat is \hat{k_z} in the paper)
     if sparse_method and len(ks) > 1 and Sam:
         lamhat, l2hat = fingering_modes.gaml2max(Pr, tau, R0)
         lhat = np.sqrt(l2hat)
         kz_hats = ks * lhat
-        A_psi = w / (2 * lhat)
+        A_psi = wf / (2 * lhat)
         A_T = -lhat * A_psi / (lamhat + l2hat)
         A_C = -lhat * A_psi / (R0 * (lamhat + tau * l2hat))
         N_Sam = int((N - 1) / 2)  # Sam's definition of N is different than mine
-        L = Sams_Lmat(N_Sam, 0, lhat, kz_hats[0], A_psi, A_T, A_C, 0, Pr, tau, R0, Pr / DB, HB, no_TC=test_Sam_no_TC)
+        if Richs_matrix:
+            L = Richs_build_matrix_real(N_Sam, kz_hats[0], R0, Pr, tau, lhat, A_psi, A_T, A_C, HB, DB)
+        else:
+            L = Sams_Lmat(N_Sam, 0, lhat, kz_hats[0], A_psi, A_T, A_C, 0, Pr, tau, R0, Pr / DB, HB, no_TC=test_Sam_no_TC)
         w, v = np.linalg.eig(L)
         # char_poly1 = fingering_modes.characteristic_polynomial(Pr, tau, R0, l2hat)
         # roots1 = char_poly1.roots()
@@ -733,7 +879,16 @@ def gamma_over_k_withTC(delta, w, HB, DB, Pr, tau, R0, ks, N, Sam=False, get_fre
         # print(np.max(np.abs(elevator2_mode1)))
         # print(np.max(np.abs(elevator2_mode2)))
         for ki, kzhat in enumerate(kz_hats[1:], 1):
-            L = Sams_Lmat(N_Sam, 0, lhat, kzhat, A_psi, A_T, A_C, 0, Pr, tau, R0, Pr / DB, HB, no_TC=test_Sam_no_TC)
+            if Richs_matrix:
+                L = Richs_build_matrix_real(N_Sam, kzhat, R0, Pr, tau, lhat, A_psi, A_T, A_C, HB, DB)
+            else:
+                L = Sams_Lmat(N_Sam, 0, lhat, kzhat, A_psi, A_T, A_C, 0, Pr, tau, R0, Pr / DB, HB, no_TC=test_Sam_no_TC)
+            if sparse_matrix == "csr":
+                L = scipy.sparse.csr_matrix(L)
+            if sparse_matrix == "csc":
+                L = scipy.sparse.csc_matrix(L)
+            if sparse_matrix == "dia":
+                L = scipy.sparse.dia_matrix(L)
             # first try passing v0 but not sigma. Should do a speed test comparing what happens when you pass sigma too, but that will affect the 'which' argument
             # note I have no idea what the ncz argument is or does or if we should touch it
             # note also that if we provide sigma, we can probably speed things up by calculating "OPinv" analytically and providing it, rather than having scipy calculate it numerically

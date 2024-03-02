@@ -66,6 +66,9 @@ char_poly1 = fingering_modes.characteristic_polynomial(Pr, tau, R0, l2hat)
 roots1 = char_poly1.roots()
 char_poly2 = fingering_modes.characteristic_polynomial(Pr, tau, R0, 4 * l2hat)
 roots2 = char_poly2.roots()
+# test if my timing is being screwed up by the import statements in kolmogorov_EVP.py
+# Ltest = kolmogorov_EVP.Sams_Lmat(N_Sam, 0, lhat, kzs[0], A_psi, A_T, A_C, 0, Pr, tau, R0, Pm, HB)
+# end test
 dense_start_time = time.time()
 for kzi, kz in enumerate(kzs):
     L = kolmogorov_EVP.Sams_Lmat(N_Sam, 0, lhat, kz, A_psi, A_T, A_C, 0, Pr, tau, R0, Pm, HB)
@@ -77,7 +80,7 @@ for kzi, kz in enumerate(kzs):
 dense_stop_time = time.time()
 
 sparse_start_time = time.time()
-sparse_out = kolmogorov_EVP.gamma_over_k_withTC(0.0, wf, HB, DB, Pr, tau, R0, kz_stars, N, Sam=True, sparse_method=True, pass_sigma=True)
+sparse_out = kolmogorov_EVP.gamma_over_k_withTC(0.0, wf, HB, DB, Pr, tau, R0, kz_stars, N, Sam=True, sparse_method=True, pass_sigma=True, sparse_matrix='csc', Richs_matrix=True)
 sparse_stop_time = time.time()
 # unpack sparse_out
 elevator1_evalue1s, elevator1_mode1s, elevator1_evalue2s, elevator1_mode2s, elevator2_evalue1s, elevator2_mode1s, elevator2_evalue2s, elevator2_mode2s = sparse_out
@@ -155,7 +158,7 @@ plt.xlabel(r'$k_z/\hat{l}_f$')
 plt.ylabel(r'$Re[\lambda]/\hat{\lambda}_f$')
 plt.xscale("log")
 
-plt.savefig('figures/parasite_structures/test_sparse/test_sparse_Pr{:0.2e}_tau{:0.2e}_HB{:0.2e}_Pm{:0.2e}_R0{:0.2e}-N{}.pdf'.format(Pr, tau, HB, Pm, R0, N))
+plt.savefig('figures/parasite_structures/test_sparse/test_sparse_Pr{:0.2e}_tau{:0.2e}_HB{:0.2e}_Pm{:0.2e}_R0{:0.2e}-N{}-sparse_csr-RealMat.pdf'.format(Pr, tau, HB, Pm, R0, N))
 print(dense_stop_time - dense_start_time)
 print(sparse_stop_time - sparse_start_time)
 # plt.show()
