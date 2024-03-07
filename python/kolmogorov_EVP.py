@@ -808,7 +808,7 @@ def gammax_minus_lambda(w, lamhat, lhat, HB, Pr, DB, delta, ks, N, ideal=False, 
     return out
 
 
-def gamma_over_k_withTC(delta, wf, HB, DB, Pr, tau, R0, ks, N, Sam=False, get_frequencies=False, test_Sam_no_TC=False, sparse_method=False, pass_sigma=True, sparse_matrix=None, Richs_matrix=False):
+def gamma_over_k_withTC(delta, wf, HB, DB, Pr, tau, R0, ks, N, Sam=False, get_frequencies=False, get_evecs=False, test_Sam_no_TC=False, sparse_method=False, sparse2=False, k=3, pass_sigma=True, sparse_matrix=None, Richs_matrix=False):
     # note these ks are really k_stars not k_hats
     # As in, k_star = k_hat / lhat (where k_hat is \hat{k_z} in the paper)
     if sparse_method and len(ks) > 1 and Sam:
@@ -862,14 +862,15 @@ def gamma_over_k_withTC(delta, wf, HB, DB, Pr, tau, R0, ks, N, Sam=False, get_fr
         elevator2_evalue2s = np.zeros_like(elevator1_evalue1s)
         elevator2_evalue2s[0] = w[elevator2_asymptote_ind2]
 
-        elevator1_mode1s = np.zeros((len(kz_hats), len(elevator1_mode1)), dtype=np.complex128)
-        elevator1_mode1s[0] = elevator1_mode1
-        elevator1_mode2s = np.zeros_like(elevator1_mode1s)
-        elevator1_mode2s[0] = elevator1_mode2
-        elevator2_mode1s = np.zeros_like(elevator1_mode1s)
-        elevator2_mode1s[0] = elevator2_mode1
-        elevator2_mode2s = np.zeros_like(elevator1_mode1s)
-        elevator2_mode2s[0] = elevator2_mode2
+        if get_evecs:
+            elevator1_mode1s = np.zeros((len(kz_hats), len(elevator1_mode1)), dtype=np.complex128)
+            elevator1_mode1s[0] = elevator1_mode1
+            elevator1_mode2s = np.zeros_like(elevator1_mode1s)
+            elevator1_mode2s[0] = elevator1_mode2
+            elevator2_mode1s = np.zeros_like(elevator1_mode1s)
+            elevator2_mode1s[0] = elevator2_mode1
+            elevator2_mode2s = np.zeros_like(elevator1_mode1s)
+            elevator2_mode2s[0] = elevator2_mode2
         # print(elevator1_evalue1s[0])
         # print(elevator1_evalue2s[0])
         # print(elevator2_evalue1s[0])
@@ -894,31 +895,44 @@ def gamma_over_k_withTC(delta, wf, HB, DB, Pr, tau, R0, ks, N, Sam=False, get_fr
             # note also that if we provide sigma, we can probably speed things up by calculating "OPinv" analytically and providing it, rather than having scipy calculate it numerically
             # note also that this *might* be sped up by using Rich's version of L that has all-real coefficients
             if pass_sigma:
-                out = scipy.sparse.linalg.eigs(L, k=1, sigma=elevator1_evalue1s[ki-1], v0=elevator1_mode1s[ki-1], which='LM')
+                out = scipy.sparse.linalg.eigs(L, k=1, sigma=elevator1_evalue1s[ki-1], v0=elevator1_mode1, which='LM')
                 elevator1_evalue1s[ki] = out[0]
-                elevator1_mode1s[ki] = out[1][0]
-                out = scipy.sparse.linalg.eigs(L, k=1, sigma=elevator1_evalue2s[ki-1], v0=elevator1_mode2s[ki-1], which='LM')
+                # elevator1_mode1s[ki] = out[1][0]
+                elevator1_mode1 = out[1][:, 0]
+                out = scipy.sparse.linalg.eigs(L, k=1, sigma=elevator1_evalue2s[ki-1], v0=elevator1_mode2, which='LM')
                 elevator1_evalue2s[ki] = out[0]
-                elevator1_mode2s[ki] = out[1][0]
-                out = scipy.sparse.linalg.eigs(L, k=1, sigma=elevator2_evalue1s[ki-1], v0=elevator2_mode1s[ki-1], which='LM')
+                # elevator1_mode2s[ki] = out[1][0]
+                elevator1_mode2 = out[1][:, 0]
+                out = scipy.sparse.linalg.eigs(L, k=1, sigma=elevator2_evalue1s[ki-1], v0=elevator2_mode1, which='LM')
                 elevator2_evalue1s[ki] = out[0]
-                elevator2_mode1s[ki] = out[1][0]
-                out = scipy.sparse.linalg.eigs(L, k=1, sigma=elevator2_evalue2s[ki-1], v0=elevator2_mode2s[ki-1], which='LM')
+                # elevator2_mode1s[ki] = out[1][0]
+                elevator2_mode1 = out[1][:, 0]
+                out = scipy.sparse.linalg.eigs(L, k=1, sigma=elevator2_evalue2s[ki-1], v0=elevator2_mode2, which='LM')
                 elevator2_evalue2s[ki] = out[0]
-                elevator2_mode2s[ki] = out[1][0]
+                # elevator2_mode2s[ki] = out[1][0]
+                elevator2_mode2 = out[1][:, 0]
             else:  # preliminary testing suggests that this route is trash
-                out = scipy.sparse.linalg.eigs(L, k=1, v0=elevator1_mode1s[ki-1], which='LM')
+                out = scipy.sparse.linalg.eigs(L, k=1, v0=elevator1_mode1, which='LM')
                 elevator1_evalue1s[ki] = out[0]
-                elevator1_mode1s[ki] = out[1][0]
-                out = scipy.sparse.linalg.eigs(L, k=1, v0=elevator1_mode2s[ki-1], which='LM')
+                # elevator1_mode1s[ki] = out[1][0]
+                elevator1_mode1 = out[1][:, 0]
+                out = scipy.sparse.linalg.eigs(L, k=1, v0=elevator1_mode2, which='LM')
                 elevator1_evalue2s[ki] = out[0]
-                elevator1_mode2s[ki] = out[1][0]
-                out = scipy.sparse.linalg.eigs(L, k=1, v0=elevator2_mode1s[ki-1], which='LM')
+                # elevator1_mode2s[ki] = out[1][0]
+                elevator1_mode2 = out[1][:, 0]
+                out = scipy.sparse.linalg.eigs(L, k=1, v0=elevator2_mode1, which='LM')
                 elevator2_evalue1s[ki] = out[0]
-                elevator2_mode1s[ki] = out[1][0]
-                out = scipy.sparse.linalg.eigs(L, k=1, v0=elevator2_mode2s[ki-1], which='LM')
+                # elevator2_mode1s[ki] = out[1][0]
+                elevator2_mode1 = out[1][:, 0]
+                out = scipy.sparse.linalg.eigs(L, k=1, v0=elevator2_mode2, which='LM')
                 elevator2_evalue2s[ki] = out[0]
-                elevator2_mode2s[ki] = out[1][0]
+                # elevator2_mode2s[ki] = out[1][0]
+                elevator2_mode2 = out[1][:, 0]
+            if get_evecs:
+                elevator1_mode1s[ki] = elevator1_mode1
+                elevator1_mode2s[ki] = elevator1_mode2
+                elevator2_mode1s[ki] = elevator2_mode1
+                elevator2_mode2s[ki] = elevator2_mode2
             # print(ki, kzhat)
             # print(elevator1_evalue1s[ki])
             # print(elevator1_evalue2s[ki])
@@ -928,14 +942,52 @@ def gamma_over_k_withTC(delta, wf, HB, DB, Pr, tau, R0, ks, N, Sam=False, get_fr
             # print(np.max(np.abs(elevator1_mode2s[ki])))
             # print(np.max(np.abs(elevator2_mode1s[ki])))
             # print(np.max(np.abs(elevator2_mode2s[ki])))
-        return elevator1_evalue1s, elevator1_mode1s, elevator1_evalue2s, elevator1_mode2s, elevator2_evalue1s, elevator2_mode1s, elevator2_evalue2s, elevator2_mode2s
-
+        if get_evecs:
+            return elevator1_evalue1s, elevator1_mode1s, elevator1_evalue2s, elevator1_mode2s, elevator2_evalue1s, elevator2_mode1s, elevator2_evalue2s, elevator2_mode2s
+        else:
+            return elevator1_evalue1s, elevator1_evalue2s, elevator2_evalue1s, elevator2_evalue2s
+    if sparse2:
+        lamhat, l2hat = fingering_modes.gaml2max(Pr, tau, R0)
+        lhat = np.sqrt(l2hat)
+        kz_hats = ks * lhat
+        A_psi = wf / (2 * lhat)
+        A_T = -lhat * A_psi / (lamhat + l2hat)
+        A_C = -lhat * A_psi / (R0 * (lamhat + tau * l2hat))
+        N_Sam = int((N - 1) / 2)  # Sam's definition of N is different than mine
+        if Richs_matrix:
+            L = Richs_build_matrix_real(N_Sam, kz_hats[0], R0, Pr, tau, lhat, A_psi, A_T, A_C, HB, DB)
+        else:
+            L = Sams_Lmat(N_Sam, 0, lhat, kz_hats[0], A_psi, A_T, A_C, 0, Pr, tau, R0, Pr / DB, HB, no_TC=test_Sam_no_TC)
+        w, v = np.linalg.eig(L)
+        w_sort = np.argsort(-np.real(w))
+        w_sorted = w[w_sort]
+        evalues = np.zeros((len(kz_hats), k), dtype=np.complex128)
+        evalues[0] = w_sorted[:k]
+        evec = v[:, w_sort[0]]
+        for ki, kzhat in enumerate(kz_hats[1:], 1):
+            if Richs_matrix:
+                L = Richs_build_matrix_real(N_Sam, kzhat, R0, Pr, tau, lhat, A_psi, A_T, A_C, HB, DB)
+            else:
+                L = Sams_Lmat(N_Sam, 0, lhat, kzhat, A_psi, A_T, A_C, 0, Pr, tau, R0, Pr / DB, HB, no_TC=test_Sam_no_TC)
+            if sparse_matrix == "csr":
+                L = scipy.sparse.csr_matrix(L)
+            if sparse_matrix == "csc":
+                L = scipy.sparse.csc_matrix(L)
+            if sparse_matrix == "dia":
+                L = scipy.sparse.dia_matrix(L)
+            out = scipy.sparse.linalg.eigs(L, k=k, sigma=w_sorted[0], v0=evec, which='LM')
+            w = out[0]
+            w_sort = np.argsort(-np.real(w))
+            w_sorted = w[w_sort]
+            evalues[ki] = w_sorted
+            evec = out[1][:, w_sort[0]]  # I don't think this v0 business is actually speeding things up
+        return evalues[:, 0]
     else:
-        return [sigma_from_fingering_params(delta, w, HB, DB, Pr, tau, R0, k, N, withTC=True, Sam=Sam, get_frequency=get_frequencies, test_Sam_no_TC=test_Sam_no_TC) for k in ks]
+        return [sigma_from_fingering_params(delta, wf, HB, DB, Pr, tau, R0, k, N, withTC=True, Sam=Sam, get_frequency=get_frequencies, test_Sam_no_TC=test_Sam_no_TC) for k in ks]
 
 
-def gammax_kscan_withTC(delta, w, HB, DB, Pr, tau, R0, ks, N, badks_except=False, get_kmax=False, Sam=False, test_Sam_no_TC=False):
-    gammas = gamma_over_k_withTC(delta, w, HB, DB, Pr, tau, R0, ks, N, Sam=Sam, test_Sam_no_TC=test_Sam_no_TC)
+def gammax_kscan_withTC(delta, w, HB, DB, Pr, tau, R0, ks, N, badks_except=False, get_kmax=False, Sam=False, test_Sam_no_TC=False, sparse=False):
+    gammas = gamma_over_k_withTC(delta, w, HB, DB, Pr, tau, R0, ks, N, Sam=Sam, test_Sam_no_TC=test_Sam_no_TC, sparse2=sparse, sparse_matrix='csr')
     ind = np.argmax(gammas)
     gammax = gammas[ind]
     if badks_except and gammax > 0.0:  # ASSUMING USER DOESN'T CARE ABOUT GAMMA_MAX IF IT'S NEGATIVE
@@ -955,7 +1007,7 @@ def gammax_kscan_withTC(delta, w, HB, DB, Pr, tau, R0, ks, N, badks_except=False
         return np.max(gammas)
 
 
-def gammax_minus_lambda_withTC(w, lamhat, delta, HB, DB, Pr, tau, R0, ks, N, badks_exception=False, C2=0.33, Sam=False, test_Sam_no_TC=False):
+def gammax_minus_lambda_withTC(w, lamhat, delta, HB, DB, Pr, tau, R0, ks, N, badks_exception=False, C2=0.33, Sam=False, test_Sam_no_TC=False, sparse=False):
     # a silly helper function that returns sigma - lambda rather than sigma
     # so that I can use root-finding packages to search for zeros of this
     # function
@@ -967,7 +1019,7 @@ def gammax_minus_lambda_withTC(w, lamhat, delta, HB, DB, Pr, tau, R0, ks, N, bad
     while True:
         count += 1
         try:
-            out = gammax_kscan_withTC(delta, w, HB, DB, Pr, tau, R0, ks, N, badks_exception, Sam=Sam, test_Sam_no_TC=test_Sam_no_TC) * C2 - lamhat
+            out = gammax_kscan_withTC(delta, w, HB, DB, Pr, tau, R0, ks, N, badks_exception, Sam=Sam, test_Sam_no_TC=test_Sam_no_TC, sparse=sparse) * C2 - lamhat
             break
         except ValueError:
             # the max occurs at the upper end of ks so seldomly

@@ -15,13 +15,15 @@ Pr = 1e-6  # 0.1
 tau = 1e-7  # 0.1
 Pm = 0.1  # 1
 HB = 1e-7  # 0.1
-wf = 7e-5  # 2
+# wf = 7e-5  # 2
+wf = 0.0003806622073821217
 # kz_stars = np.linspace(0.01, 0.4, 40)  # normalized to lhat
-kz_stars = np.linspace(0.001, 0.01, 50)
+# kz_stars = np.linspace(0.001, 0.01, 50)
+kz_stars = np.geomspace(1e-6, 0.01, num=50, endpoint=True)
 mode_index = 0
-R0 = 9e6  # 5
-N1 = 5
-N2 = 9
+R0 = 8e6  # 5
+N1 = 3
+N2 = 5
 N3 = 17
 
 
@@ -61,6 +63,12 @@ kzs = kz_stars * lhat  # undo the lhat normalization
 A_psi = wf / (2 * lhat)
 A_T = -lhat * A_psi / (lamhat + l2hat)
 A_C = -lhat * A_psi / (R0 * (lamhat + tau * l2hat))
+char_poly1 = fingering_modes.characteristic_polynomial(Pr, tau, R0, l2hat)
+roots1 = char_poly1.roots()
+char_poly2 = fingering_modes.characteristic_polynomial(Pr, tau, R0, 4 * l2hat)
+roots2 = char_poly2.roots()
+C1 = 0.62
+C2 = 0.33
 # lambdas = np.zeros((3, len(kzs)), dtype=np.complex128)
 evalues_all = []  # including all N
 
@@ -80,7 +88,7 @@ for n_ind, N in enumerate([N1, N2, N3]):
             modes[kzi] = mode_kzi
     evalues_all.append(evalues)
 
-with PdfPages('Parasite_structures_vs_kz_Pr{:0.2e}_tau{:0.2e}_HB{:0.2e}_Pm{:0.2e}_R0{:0.2e}_wf{:0.2e}_ind{}.pdf'.format(Pr, tau, HB, Pm, R0, wf, mode_index)) as pdf:
+with PdfPages('figures/parasite_structures/vs_kz/Parasite_structures_vs_kz_Pr{:0.2e}_tau{:0.2e}_HB{:0.2e}_Pm{:0.2e}_R0{:0.2e}_wf{:0.2e}_ind{}.pdf'.format(Pr, tau, HB, Pm, R0, wf, mode_index)) as pdf:
     # for i, evalue in enumerate(w_sorted[:-10]):
     for kzi, kz in enumerate(kzs):
         kz_star = kz_stars[kzi]
@@ -92,18 +100,20 @@ with PdfPages('Parasite_structures_vs_kz_Pr{:0.2e}_tau{:0.2e}_HB{:0.2e}_Pm{:0.2e
         #     plt.plot(kz_stars, np.real(evalues_all[1][:, i]), '+', c='C1', label=r'$N = {}$'.format(N2))
         # for i in range(len(evalues_all[2][0])):  # for each mode
         #     plt.plot(kz_stars, np.real(evalues_all[2][:, i]), '.', c='C2', label=r'$N = {}$'.format(N3))
-        for i in range(5):
+        for i in range(8):
             # evalues_N1_sorted = evalues_all[0]
             if i == 0:
-                plt.plot(kz_stars, np.real(evalues_all[0][:, i]), '-', c='C0', label=r'$N = {}$'.format(N1))
-                plt.plot(kz_stars, np.real(evalues_all[1][:, i]), '--', c='C1', label=r'$N = {}$'.format(N2))
-                plt.plot(kz_stars, np.real(evalues_all[2][:, i]), ':', c='C2', label=r'$N = {}$'.format(N3))
+                plt.plot(kz_stars, np.real(evalues_all[0][:, i]) / lamhat, '-', c='C0', label=r'$N = {}$'.format(N1))
+                plt.plot(kz_stars, np.real(evalues_all[1][:, i]) / lamhat, '--', c='C1', label=r'$N = {}$'.format(N2))
+                plt.plot(kz_stars, np.real(evalues_all[2][:, i]) / lamhat, ':', c='C2', label=r'$N = {}$'.format(N3))
             else:
-                plt.plot(kz_stars, np.real(evalues_all[0][:, i]), '-', c='C0')
-                plt.plot(kz_stars, np.real(evalues_all[1][:, i]), '--', c='C1')
-                plt.plot(kz_stars, np.real(evalues_all[2][:, i]), ':', c='C2')
+                plt.plot(kz_stars, np.real(evalues_all[0][:, i]) / lamhat, '-', c='C0')
+                plt.plot(kz_stars, np.real(evalues_all[1][:, i]) / lamhat, '--', c='C1')
+                plt.plot(kz_stars, np.real(evalues_all[2][:, i]) / lamhat, ':', c='C2')
         plt.axvline(kz_star, c='red')
-        plt.xlim(xmin=0)
+        plt.xscale('log')
+        plt.ylim((2 * roots2[2] / lamhat, 1 / C2))
+        # plt.xlim(xmin=0)
         # plt.ylim(ymin=-0.5)
         plt.xlabel(r'$k_z/\hat{l}_f$')
         plt.ylabel(r'$Re[\lambda]$')

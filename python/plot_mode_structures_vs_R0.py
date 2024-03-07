@@ -19,14 +19,14 @@ DB = Pr / Pm
 HB = 1e-7  # 0.1
 # kz_stars = np.linspace(0.01, 0.4, 40)  # normalized to lhat
 # kz_stars = np.linspace(0.001, 0.01, 50)
-kz_stars = np.append(np.geomspace(1e-6, 0.1, num=100, endpoint=False), np.linspace(0.1, 1.0, num=50))
+kz_stars = np.append(np.geomspace(1e-6, 0.1, num=4*100, endpoint=False), np.linspace(0.1, 1.0, num=50))
 mode_index = 0
 # R0 = 9e6  # 5
 # rs = np.linspace(1/49, 1, num=40, endpoint=False)
 rs = np.linspace(0.79, 0.875, num=40, endpoint=True)
 R0s = rs*((1/tau) - 1) + 1
 
-N = 17
+N = 9
 N_Sam = int((N-1)/2)  # Sam's definition of N is different than mine
 C1 = 0.62  # for with_TC model
 C2 = 0.33  # for with_TC model
@@ -68,7 +68,7 @@ lhats = np.sqrt(l2hats)
 results = parasite_model.results_vs_r0(R0s, HB, Pr, tau, DB, kz_stars, N, lamhats, l2hats, withTC=True, Sam=True, C1=C1, C2=C2)
 print("done calculating results array")
 
-with PdfPages('Parasite_structures_vs_R0_Pr{:0.2e}_tau{:0.2e}_HB{:0.2e}_Pm{:0.2e}_N{}-3.pdf'.format(Pr, tau, HB, Pm, N)) as pdf:
+with PdfPages('figures/parasite_structures/vs_R0/Parasite_structures_vs_R0_Pr{:0.2e}_tau{:0.2e}_HB{:0.2e}_Pm{:0.2e}_N{}-4.pdf'.format(Pr, tau, HB, Pm, N)) as pdf:
     for ri, r0 in enumerate(R0s):
         l2hat = l2hats[ri]
         lhat = lhats[ri]
@@ -124,13 +124,15 @@ with PdfPages('Parasite_structures_vs_R0_Pr{:0.2e}_tau{:0.2e}_HB{:0.2e}_Pm{:0.2e
         for j in range(d):  # loop over every mode branch
             i = np.where(np.abs(evalues[:, j].imag) > 1e-12)[0]
             if len(i) > 1:
-                plt.scatter(kz_stars[i], evalues[i, j].real / lamhat, 1, color='r')  # /(N**2*l_fs**2+k_z**2))
+                # plt.scatter(kz_stars[i], evalues[i, j].real / lamhat, 1, color='r')  # /(N**2*l_fs**2+k_z**2))
+                plt.plot(kz_stars[i], evalues[i, j].real / lamhat, '+', ms=1, color='r')  # TODO: no need for the i indexing here! Oops
             i = np.where(np.abs(evalues[:, j].imag) < 1e-12)[0]
             if len(i) > 1:
-                plt.scatter(kz_stars[i], evalues[i, j].real / lamhat, 1, color='k')  # /(N**2*l_fs**2+k_z**2))
+                # plt.scatter(kz_stars[i], evalues[i, j].real / lamhat, 1, color='k')  # /(N**2*l_fs**2+k_z**2))
+                plt.plot(kz_stars[i], evalues[i, j].real / lamhat, '.', ms=1, color='k')
         plt.axvline(kmax_star, c='red')
         # plt.ylim((-10, 5))
-        plt.ylim((roots2[2]/lamhat, 1/C2))
+        plt.ylim((2*roots2[2]/lamhat, 1/C2))
         plt.xlabel(r'$k_z/\hat{l}_f$')
         plt.ylabel(r'$Re[\lambda]/\hat{\lambda}_f$')
         plt.xscale("log")
@@ -144,10 +146,12 @@ with PdfPages('Parasite_structures_vs_R0_Pr{:0.2e}_tau{:0.2e}_HB{:0.2e}_Pm{:0.2e
         for j in range(d):  # loop over every mode branch
             i = np.where(np.abs(evalues[:, j].imag) > 1e-12)[0]
             if len(i) > 1:
-                plt.scatter(kz_stars[i], evalues[i, j].real / lamhat, 1, color='r')  # /(N**2*l_fs**2+k_z**2))
+                # plt.scatter(kz_stars[i], evalues[i, j].real / lamhat, 1, color='r')  # /(N**2*l_fs**2+k_z**2))
+                plt.plot(kz_stars[i], evalues[i, j].real / lamhat, '+', ms=1, color='r')
             i = np.where(np.abs(evalues[:, j].imag) < 1e-12)[0]
             if len(i) > 1:
-                plt.scatter(kz_stars[i], evalues[i, j].real / lamhat, 1, color='k')  # /(N**2*l_fs**2+k_z**2))
+                # plt.scatter(kz_stars[i], evalues[i, j].real / lamhat, 1, color='k')  # /(N**2*l_fs**2+k_z**2))
+                plt.plot(kz_stars[i], evalues[i, j].real / lamhat, '.', ms=1, color='k')
         plt.axvline(kmax_star, c='red')
         # plt.ylim((-10, 5))
         plt.ylim((-5, 1/C2))

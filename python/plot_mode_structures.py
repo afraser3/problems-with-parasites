@@ -9,19 +9,30 @@ import numpy as np
 from matplotlib import pyplot as plt
 import fingering_modes
 import kolmogorov_EVP
+import parasite_model
 from matplotlib.backends.backend_pdf import PdfPages
 
-Pr = 0.1
-tau = 0.1
-Pm = 1
-HB = 0.1
-wf = 2
-kz_star = 1e-3  # normalized to lhat
-R0 = 5
-N1 = 5
-N2 = 9
+Pr = 1e-6
+tau = 1e-7
+Pm = 1e-1
+DB = Pr / Pm
+HB = 1e-7
+wf = -1  # 4.2e-4  # 0.000425
+kz_star = 1e-4  # normalized to lhat
+R0 = 1.2e6
+N1 = 3
+N2 = 5
 N3 = 17
 
+lamhat, l2hat = fingering_modes.gaml2max(Pr, tau, R0)
+lhat = np.sqrt(l2hat)
+if wf < 0:
+    C1 = 0.62  # for with_TC model
+    C2 = 0.33  # for with_TC model
+    kz_stars = np.append(np.geomspace(1e-6, 0.1, num=100, endpoint=False), np.linspace(0.1, 1.0, num=50))
+    result = parasite_model.parasite_results(R0, HB, Pr, tau, DB, kz_stars, N3, lamhat, l2hat, withTC=True, Sam=True, C1=C1, C2=C2)
+    wf = result['wf']
+# v_Alfven = np.sqrt(HB/(wf**2))  # units aren't right
 
 
 def xz_from_kxkz(phi_kx_ishift, ns_ishift, kz, scalefac=1):
@@ -49,12 +60,12 @@ def xz_from_kxkz(phi_kx_ishift, ns_ishift, kz, scalefac=1):
     xs = np.linspace(0, 2.0*np.pi, num=int(scalefac*len(ns_ishift)), endpoint=False)
     zs = np.linspace(0, 2.0*np.pi/kz, num=int(scalefac*len(ns_ishift)), endpoint=False)
     phi_xz = np.fft.ifft2(phi_kxkz_ishift)*len(xs)*len(zs)
+    if np.all(np.isreal(phi_xz)):
+        phi_xz = np.real(phi_xz)
     return phi_xz, xs, zs
 
 
 ns = np.array(range(-int((N3 - 1) / 2), int((N3 + 1) / 2), 1))  # these are wavenumbers in shear direction
-lamhat, l2hat = fingering_modes.gaml2max(Pr, tau, R0)
-lhat = np.sqrt(l2hat)
 kz = kz_star * lhat  # undo the lhat normalization
 A_psi = wf / (2 * lhat)
 A_T = -lhat * A_psi / (lamhat + l2hat)
@@ -70,14 +81,24 @@ for n_ind, N in enumerate([N1, N2, N3]):
         w_argsort = np.argsort(-np.real(w))
         w_sorted = w[w_argsort]  # first element is fastest growing mode, descends from there
 
-with PdfPages('Parasite_mode_structures_Pr{:0.2e}_tau{:0.2e}_HB{:0.2e}_Pm{:0.2e}_R0{:0.2e}_wf{:0.2e}_kz{:0.2e}.pdf'.format(Pr, tau, HB, Pm, R0, wf, kz_star)) as pdf:
+char_poly1 = fingering_modes.characteristic_polynomial(Pr, tau, R0, l2hat)
+roots1 = char_poly1.roots()
+char_poly2 = fingering_modes.characteristic_polynomial(Pr, tau, R0, 4 * l2hat)
+roots2 = char_poly2.roots()
+
+with PdfPages('figures/parasite_structures/vs_ind/Parasite_mode_structures_Pr{:0.2e}_tau{:0.2e}_HB{:0.2e}_Pm{:0.2e}_R0{:0.2e}_wf{:0.2e}_kz{:0.2e}.pdf'.format(Pr, tau, HB, Pm, R0, wf, kz_star)) as pdf:
     for i, evalue in enumerate(w_sorted[:-10]):
         plt.subplot(3, 1, 1)
-        plt.plot(np.real(evalues[0]), np.imag(evalues[0]), 'x', label=r'$N = {}$'.format(N1))
-        plt.plot(np.real(evalues[1]), np.imag(evalues[1]), '+', label=r'$N = {}$'.format(N2))
-        plt.plot(np.real(evalues[2]), np.imag(evalues[2]), '.', label=r'$N = {}$'.format(N3))
-        plt.plot(np.real(evalue), np.imag(evalue), '.', c='red')
-        plt.xlim(xmin=w_sorted[-11])
+        plt.plot(np.real(evalues[0]/lamhat), np.imag(evalues[0]/lamhat), 'x', label=r'$N = {}$'.format(N1))
+        plt.plot(np.real(evalues[1]/lamhat), np.imag(evalues[1]/lamhat), '+', label=r'$N = {}$'.format(N2))
+        plt.plot(np.real(evalues[2]/lamhat), np.imag(evalues[2]/lamhat), '.', label=r'$N = {}$'.format(N3))
+        plt.plot(np.real(evalue/lamhat), np.imag(evalue/lamhat), '.', c='red')
+        plt.title(r'$\lambda/\lambda_f = {}$'.format(evalue/lamhat))
+        # plt.xlim(xmin=np.real(w_sorted[-11]/lamhat))
+        for ri in range(3):  # these lines correspond to elevator mode solutions, for comparison
+            plt.axvline(np.real(roots1[ri]) / lamhat, c='C0')
+            plt.axvline(np.real(roots2[ri]) / lamhat, c='C1')
+        plt.xlim((-5, 1.25))
         plt.xlabel(r'$\Re[\lambda]$')
         plt.ylabel(r'$\Im[\lambda]$')
         plt.legend()
